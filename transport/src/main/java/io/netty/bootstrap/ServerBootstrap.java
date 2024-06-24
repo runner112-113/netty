@@ -141,15 +141,18 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         final Entry<AttributeKey<?>, Object>[] currentChildAttrs = newAttributesArray(childAttrs);
         final Collection<ChannelInitializerExtension> extensions = getInitializerExtensions();
 
+        // 添加ChannelHandler
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) {
                 final ChannelPipeline pipeline = ch.pipeline();
+                // parent的handler
                 ChannelHandler handler = config.handler();
                 if (handler != null) {
                     pipeline.addLast(handler);
                 }
 
+                // 添加ServerBootstrapAcceptor
                 ch.eventLoop().execute(new Runnable() {
                     @Override
                     public void run() {
@@ -217,13 +220,24 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             };
         }
 
+        /**
+         * 组装来自客户端的连接的SocketChannel 并注册
+         * 该方法主要分为如下三个步骤。
+         * 第一步：将启动时传入的childHandler加入到客户端SocketChannel的ChannelPipeline中：
+         * 第二步：设置客户端SocketChannel的TCP参数；
+         * 第三步：注册SocketChannel到多路复用器。
+         * @param ctx
+         * @param msg
+         */
         @Override
         @SuppressWarnings("unchecked")
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
             final Channel child = (Channel) msg;
 
+            // 将启动时传入的childHandler加入到客户端SocketChannel的ChannelPipeline中
             child.pipeline().addLast(childHandler);
 
+            // 设置客户端SocketChannel的TCP参数
             setChannelOptions(child, childOptions, logger);
             setAttributes(child, childAttrs);
 
@@ -238,6 +252,9 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             }
 
             try {
+                // 注册SocketChannel到多路复用器
+                // NioSocketChannel的注册方法与ServerSocketChannel的一致，也是将Channel注册到Reactor线程的多路复用器上。
+                // 由于注册的操作位是O，所以，此时NioSocketChannel还不能读取客户端发送的消息，那什么时候修改监听操作位为OPREAD呢?
                 childGroup.register(child).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {

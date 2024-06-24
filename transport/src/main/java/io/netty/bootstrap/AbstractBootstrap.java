@@ -50,6 +50,11 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <p>When not used in a {@link ServerBootstrap} context, the {@link #bind()} methods are useful for connectionless
  * transports such as datagram (UDP).</p>
+ *
+ * 设置工作1/O线程，执行和调度网络事件的读写。
+ *
+ *
+ * 客户端和服务端共用这个AbstractBootstrap
  */
 public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C extends Channel> implements Cloneable {
     @SuppressWarnings("unchecked")
@@ -323,7 +328,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     final ChannelFuture initAndRegister() {
         Channel channel = null;
         try {
+            // 创建一个Channel对象，由子类ServerBootStrap实现
             channel = channelFactory.newChannel();
+            // 初始化channel
             init(channel);
         } catch (Throwable t) {
             if (channel != null) {
@@ -336,8 +343,11 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             return new DefaultChannelPromise(new FailedChannel(), GlobalEventExecutor.INSTANCE).setFailure(t);
         }
 
+        // 当NioServerSocketChannel初始化完成之后，
+        // 需要将它注册到Reactor线程的多路复用器上监听新客户端的接入
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
+            // 出现异常 则关闭
             if (channel.isRegistered()) {
                 channel.close();
             } else {

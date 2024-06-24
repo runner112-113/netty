@@ -463,10 +463,12 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         @Override
         public final void register(EventLoop eventLoop, final ChannelPromise promise) {
             ObjectUtil.checkNotNull(eventLoop, "eventLoop");
+            // 当前Channel是否注册过
             if (isRegistered()) {
                 promise.setFailure(new IllegalStateException("registered to an event loop already"));
                 return;
             }
+            // 线程是否兼容
             if (!isCompatible(eventLoop)) {
                 promise.setFailure(
                         new IllegalStateException("incompatible event loop type: " + eventLoop.getClass().getName()));
@@ -475,9 +477,14 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
             AbstractChannel.this.eventLoop = eventLoop;
 
+            // 先判断是否是NioEventLoop自身发起的操作。（是不是当前线程）
+            // 如果是，则不存在并发操作，直接执行Channel注册
             if (eventLoop.inEventLoop()) {
                 register0(promise);
             } else {
+                // 如果由其他线程发起，则封装成一个Task放入消息队列中异步执行。
+                // 此处，由于是由ServerBootstrap所在线程执行的注册操作，所以会将其封装成Task投递到NioEventLoop中执行
+                // 此处会启动线程select
                 try {
                     eventLoop.execute(new Runnable() {
                         @Override
@@ -504,20 +511,28 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                     return;
                 }
                 boolean firstRegistration = neverRegistered;
+                // 进行注册
                 doRegister();
                 neverRegistered = false;
                 registered = true;
 
                 // Ensure we call handlerAdded(...) before we actually notify the promise. This is needed as the
                 // user may already fire events through the pipeline in the ChannelFutureListener.
+                // 执行 PendingHandlerCallback
                 pipeline.invokeHandlerAddedIfNeeded();
 
                 safeSetSuccess(promise);
+                // 注册成功后 触发ChannelRegistered事件
                 pipeline.fireChannelRegistered();
                 // Only fire a channelActive if the channel has never been registered. This prevents firing
                 // multiple channel actives if the channel is deregistered and re-registered.
+                // ChannelRegistered事件传递完成后，判断ServerSocketChannel监听是否成功，
+                // 如果成功，需要出发NioServerSocketChannel的ChannelActive事件
                 if (isActive()) {
                     if (firstRegistration) {
+                        // 此处HeadContext在最后会执行readIfIsAutoRead
+                        // readIfIsAutoRead会从TailContext ---> HeadContext执行read方法
+                        // HeadContext#read 会注册OP_READ感兴趣事件
                         pipeline.fireChannelActive();
                     } else if (config().isAutoRead()) {
                         // This channel was registered before and autoRead() is set. This means we need to begin read

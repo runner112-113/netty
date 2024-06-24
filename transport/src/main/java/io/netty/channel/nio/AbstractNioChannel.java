@@ -254,6 +254,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                     requestedRemoteAddress = remoteAddress;
 
                     // Schedule connect timeout.
+                    // 一旦超时定时器执行，说明客户端连接超时，构造连接超时异常，将异常结果设置到connectPromise中，同时关闭客户端连接，释放句柄。
                     final int connectTimeoutMillis = config().getConnectTimeoutMillis();
                     if (connectTimeoutMillis > 0) {
                         connectTimeoutFuture = eventLoop().schedule(new Runnable() {
@@ -270,6 +271,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                         }, connectTimeoutMillis, TimeUnit.MILLISECONDS);
                     }
 
+                    // 如果在连接超时之前获取到连接结果，则删除连接超时定时器，防止其被触发
                     promise.addListener(new ChannelFutureListener() {
                         @Override
                         public void operationComplete(ChannelFuture future) {
@@ -382,6 +384,10 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         boolean selected = false;
         for (;;) {
             try {
+                // 0表示只注册，不监听任何网络操作;这样做的原因如下:
+                // 1.注册方法是多态的，它既可以被NioServerSocketChannel用来监听客户端的连接接入，也可以注册SocketChannel用来监听网络读或者写操作
+                // 2.通过SelectionKey的interestOps(int ops)方法可以方便地修改监听操作位。所以，此处注册需要获取SelectionKey并给AbstractNioChannel的成员变量selectionKey赋值
+                // 此处也带上了attachment，及对应的AbstractNioChannel具体实现
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;
             } catch (CancelledKeyException e) {
@@ -415,6 +421,8 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         readPending = true;
 
         final int interestOps = selectionKey.interestOps();
+        // 在某些场景下，当前监听的操作类型和Chanel关心的网络事件是一致的，不需要重复注册，所以增加了&操作的判断，只有两者不一致，才需要重新注册操作位。
+        // 注册感兴趣的操作
         if ((interestOps & readInterestOp) == 0) {
             selectionKey.interestOps(interestOps | readInterestOp);
         }

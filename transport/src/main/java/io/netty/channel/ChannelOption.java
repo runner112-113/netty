@@ -79,6 +79,7 @@ public class ChannelOption<T> extends AbstractConstant<ChannelOption<T>> {
     public static final ChannelOption<RecvByteBufAllocator> RCVBUF_ALLOCATOR = valueOf("RCVBUF_ALLOCATOR");
     public static final ChannelOption<MessageSizeEstimator> MESSAGE_SIZE_ESTIMATOR = valueOf("MESSAGE_SIZE_ESTIMATOR");
 
+    // 客户端连接超时时间，由于NIO原生的客户端并不提供设置连接超时的接口，因此，Netty采用的是自定义连接超时定时器负责检测和超时控制
     public static final ChannelOption<Integer> CONNECT_TIMEOUT_MILLIS = valueOf("CONNECT_TIMEOUT_MILLIS");
     /**
      * @deprecated Use {@link MaxMessagesRecvByteBufAllocator}
@@ -113,11 +114,16 @@ public class ChannelOption<T> extends AbstractConstant<ChannelOption<T>> {
 
     public static final ChannelOption<Boolean> SO_BROADCAST = valueOf("SO_BROADCAST");
     public static final ChannelOption<Boolean> SO_KEEPALIVE = valueOf("SO_KEEPALIVE");
+    // 套接字使用的发送缓冲区大小
     public static final ChannelOption<Integer> SO_SNDBUF = valueOf("SO_SNDBUF");
+    // 套接字使用的接收缓冲区大小
     public static final ChannelOption<Integer> SO_RCVBUF = valueOf("SO_RCVBUF");
+    // 于决定如果网络上仍然有数据向旧的ServerSocket传输数据，是否允许新的ServerSocket绑定到与旧的ServerSocket同样的端口上。
+    // SO_REUSEADDR选项的默认值与操作系统有关，在某些操作系统中，允许重用端口，而在某些操作系统中不允许重用端口
     public static final ChannelOption<Boolean> SO_REUSEADDR = valueOf("SO_REUSEADDR");
     public static final ChannelOption<Integer> SO_LINGER = valueOf("SO_LINGER");
     public static final ChannelOption<Integer> SO_BACKLOG = valueOf("SO_BACKLOG");
+    // 控制读取操作将阻塞多少毫秒。如果返回值为0，计时器就被禁止了，该线程将无限期阻塞
     public static final ChannelOption<Integer> SO_TIMEOUT = valueOf("SO_TIMEOUT");
 
     public static final ChannelOption<Integer> IP_TOS = valueOf("IP_TOS");
@@ -126,6 +132,11 @@ public class ChannelOption<T> extends AbstractConstant<ChannelOption<T>> {
     public static final ChannelOption<Integer> IP_MULTICAST_TTL = valueOf("IP_MULTICAST_TTL");
     public static final ChannelOption<Boolean> IP_MULTICAST_LOOP_DISABLED = valueOf("IP_MULTICAST_LOOP_DISABLED");
 
+    // 激活或禁止TCP_NODELAY套接字选项，它决定是否使用Nagle算法。
+    // 如果是时延敏感型的应用，建议关闭Nagle算法。
+    // Nagle 算法通过将小的数据包合并成一个较大的数据包来发送，减少网络拥塞和提高效率。
+    // 但在某些实时应用场景中（如在线游戏、实时语音通信等），这种行为会引入不可接受的延迟。
+    // 启用 TCP_NODELAY 后，数据包会立即发送，不再等待合并。
     public static final ChannelOption<Boolean> TCP_NODELAY = valueOf("TCP_NODELAY");
     /**
      * Client-side TCP FastOpen. Sending data with the initial TCP handshake.

@@ -161,16 +161,23 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
      * @see #connect()
      */
     private ChannelFuture doResolveAndConnect(final SocketAddress remoteAddress, final SocketAddress localAddress) {
+
+        // 初始化并注册
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
 
+        // 判断初始化和注册是否已经完成
         if (regFuture.isDone()) {
+            // 如果注册失败，则返回ChannelFuture对象
             if (!regFuture.isSuccess()) {
                 return regFuture;
             }
+            // 如果注册成功，则创建一个该channel对应的Promise对象作为参数
             return doResolveAndConnect0(channel, remoteAddress, localAddress, channel.newPromise());
         } else {
             // Registration future is almost always fulfilled already, but just in case it's not.
+            // 如果注册未完成，则创建一个PendingRegistrationPromise类型的对象，并向regFuture对象中添加一个listener，
+            // 在注册完成后会调用该listener的operationComplete方法。
             final PendingRegistrationPromise promise = new PendingRegistrationPromise(channel);
             regFuture.addListener(new ChannelFutureListener() {
                 @Override
@@ -185,6 +192,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
                     } else {
                         // Registration was successful, so set the correct executor to use.
                         // See https://github.com/netty/netty/issues/2586
+                        // 将promise标记为已注册
                         promise.registered();
                         doResolveAndConnect0(channel, remoteAddress, localAddress, promise);
                     }
@@ -257,6 +265,8 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
         // This method is invoked before channelRegistered() is triggered.  Give user handlers a chance to set up
         // the pipeline in its channelRegistered() implementation.
         final Channel channel = connectPromise.channel();
+        // 链路创建成功之后，发起异步的TCP连接
+        // 具体的连接工作放到了channel对应的eventLoop来执行
         channel.eventLoop().execute(new Runnable() {
             @Override
             public void run() {
@@ -273,10 +283,14 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
     @Override
     void init(Channel channel) {
         ChannelPipeline p = channel.pipeline();
+        // 将配置的ChannelHandler添加到ChannelPipeline
         p.addLast(config.handler());
 
+        // 设置Tcp 配置项
         setChannelOptions(channel, newOptionsArray(), logger);
+        // 设置属性
         setAttributes(channel, newAttributesArray());
+        // SPI 扩展 ChannelInitializerExtension
         Collection<ChannelInitializerExtension> extensions = getInitializerExtensions();
         if (!extensions.isEmpty()) {
             for (ChannelInitializerExtension extension : extensions) {

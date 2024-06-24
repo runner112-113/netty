@@ -219,6 +219,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
                 return this;
             }
         }
+        // 回调ChannelAdded
         callHandlerAdded0(newCtx);
         return this;
     }
@@ -1354,6 +1355,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             unsafe.deregister(promise);
         }
 
+        /**
+         * 会在此处注册感兴趣的事件
+         * @param ctx
+         */
         @Override
         public void read(ChannelHandlerContext ctx) {
             unsafe.beginRead();
