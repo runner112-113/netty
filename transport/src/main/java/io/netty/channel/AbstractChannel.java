@@ -489,6 +489,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                     eventLoop.execute(new Runnable() {
                         @Override
                         public void run() {
+                            // channel注册到EventLoop的多路复用器上
                             register0(promise);
                         }
                     });
@@ -521,6 +522,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 // 执行 PendingHandlerCallback
                 pipeline.invokeHandlerAddedIfNeeded();
 
+                // 将ChannelPromise的结果设置为true
                 safeSetSuccess(promise);
                 // 注册成功后 触发ChannelRegistered事件
                 pipeline.fireChannelRegistered();
@@ -550,6 +552,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
         }
 
+        /**
+         * 服务端：用于绑定监听端口，可以设置backlog
+         * 客户端：主要用于指定客户单Channel的本地绑定的Socket地址
+         */
         @Override
         public final void bind(final SocketAddress localAddress, final ChannelPromise promise) {
             assertEventLoop();
@@ -757,6 +763,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                         }
                     });
                 } else {
+                    // 取消注册
                     fireChannelInactiveAndDeregister(wasActive);
                 }
             }

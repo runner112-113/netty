@@ -335,7 +335,14 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
 
     @Override
     protected void doFinishConnect() throws Exception {
+        /**
+         * finishConnect方法有三种结果返回：
+         * 1. 连接成功返回true
+         * 2. 连接失败返回false
+         * 3. 发生链路被关闭、链路中断等异常，连接失败
+         */
         if (!javaChannel().finishConnect()) {
+            // 连接失败则会抛出Error
             throw new Error();
         }
     }
@@ -386,6 +393,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
     @Override
     protected void doWrite(ChannelOutboundBuffer in) throws Exception {
         SocketChannel ch = javaChannel();
+        // 获取写入自旋的次数
         int writeSpinCount = config().getWriteSpinCount();
         do {
             if (in.isEmpty()) {
@@ -428,6 +436,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
                     // to check if the total size of all the buffers is non-zero.
                     // We limit the max amount to int above so cast is safe
                     long attemptedBytes = in.nioBufferSize();
+                    // 真正的写到底层的Channel中，即flush操作
                     final long localWrittenBytes = ch.write(nioBuffers, 0, nioBufferCnt);
                     if (localWrittenBytes <= 0) {
                         incompleteWrite(true);
@@ -436,6 +445,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
                     // Casting to int is safe because we limit the total amount of data in the nioBuffers to int above.
                     adjustMaxBytesPerGatheringWrite((int) attemptedBytes, (int) localWrittenBytes,
                             maxBytesPerGatheringWrite);
+                    // flush之后进行链表清理操作
                     in.removeBytes(localWrittenBytes);
                     --writeSpinCount;
                     break;
@@ -443,6 +453,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
             }
         } while (writeSpinCount > 0);
 
+        // 如果writeSpinCount < 0 表示消息还没有全部发送完
         incompleteWrite(writeSpinCount < 0);
     }
 

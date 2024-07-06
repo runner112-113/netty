@@ -34,16 +34,23 @@ import static java.lang.Math.min;
  */
 public class AdaptiveRecvByteBufAllocator extends DefaultMaxMessagesRecvByteBufAllocator {
 
+    // 最小缓冲区长度为64bytes
     static final int DEFAULT_MINIMUM = 64;
     // Use an initial value that is bigger than the common MTU of 1500
+    // 初始容量为2048bytes
     static final int DEFAULT_INITIAL = 2048;
+    // 最大容量为65536bytes
     static final int DEFAULT_MAXIMUM = 65536;
 
+    // 扩张的步进索引为4
     private static final int INDEX_INCREMENT = 4;
+    // 收缩的步进索引为1
     private static final int INDEX_DECREMENT = 1;
 
+    // 长度的向量表
     private static final int[] SIZE_TABLE;
 
+    // TODO
     static {
         List<Integer> sizeTable = new ArrayList<Integer>();
         for (int i = 16; i < 512; i += 16) {
@@ -67,6 +74,11 @@ public class AdaptiveRecvByteBufAllocator extends DefaultMaxMessagesRecvByteBufA
     @Deprecated
     public static final AdaptiveRecvByteBufAllocator DEFAULT = new AdaptiveRecvByteBufAllocator();
 
+    /**
+     * 根据容量Size查找向量表对应的索引(二分查找法)
+     * @param size
+     * @return
+     */
     private static int getSizeTableIndex(final int size) {
         for (int low = 0, high = SIZE_TABLE.length - 1;;) {
             if (high < low) {
@@ -92,12 +104,17 @@ public class AdaptiveRecvByteBufAllocator extends DefaultMaxMessagesRecvByteBufA
     }
 
     private final class HandleImpl extends MaxMessageHandle {
+        // 向量表的最小索引
         private final int minIndex;
+        // 向量表的最大索引
         private final int maxIndex;
         private final int minCapacity;
         private final int maxCapacity;
+        // 向量表的当前索引
         private int index;
+        // 下一次预分配的Buffer大小
         private int nextReceiveBufferSize;
+        // 是否立即执行容量收缩操作
         private boolean decreaseNow;
 
         HandleImpl(int minIndex, int maxIndex, int initialIndex, int minCapacity, int maxCapacity) {
@@ -127,6 +144,11 @@ public class AdaptiveRecvByteBufAllocator extends DefaultMaxMessagesRecvByteBufA
             return nextReceiveBufferSize;
         }
 
+        /**
+         * 当NioSocketChannel执行完读操作后，会计算获得本次轮询读取的总字节数，它就是参数actualReadBytes，
+         * 执行record方法，根据实际读取的字节数对ByteBuf进行动态伸缩和扩张
+         * @param actualReadBytes  本次轮询读取的总字节数
+         */
         private void record(int actualReadBytes) {
             if (actualReadBytes <= SIZE_TABLE[max(0, index - INDEX_DECREMENT)]) {
                 if (decreaseNow) {

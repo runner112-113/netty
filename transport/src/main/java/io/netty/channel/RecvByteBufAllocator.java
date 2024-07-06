@@ -120,11 +120,11 @@ public interface RecvByteBufAllocator {
      * A {@link Handle} which delegates all call to some other {@link Handle}.
      */
     class DelegatingHandle implements Handle {
-        private final Handle delegate;
-
         public DelegatingHandle(Handle delegate) {
             this.delegate = checkNotNull(delegate, "delegate");
         }
+
+        private final Handle delegate;
 
         /**
          * Get the {@link Handle} which all methods will be delegated to.

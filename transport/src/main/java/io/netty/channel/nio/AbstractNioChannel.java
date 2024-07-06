@@ -247,6 +247,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                 }
 
                 boolean wasActive = isActive();
+                // 情形一:连接成功
                 if (doConnect(remoteAddress, localAddress)) {
                     fulfillConnectPromise(promise, wasActive);
                 } else {
@@ -254,34 +255,38 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                     requestedRemoteAddress = remoteAddress;
 
                     // Schedule connect timeout.
-                    // 一旦超时定时器执行，说明客户端连接超时，构造连接超时异常，将异常结果设置到connectPromise中，同时关闭客户端连接，释放句柄。
+                    // 情形二:一旦超时定时器执行，说明客户端连接超时，构造连接超时异常，将异常结果设置到connectPromise中，同时关闭客户端连接，释放句柄。
                     final int connectTimeoutMillis = config().getConnectTimeoutMillis();
                     if (connectTimeoutMillis > 0) {
                         connectTimeoutFuture = eventLoop().schedule(new Runnable() {
                             @Override
                             public void run() {
+                                // 在接听到OP_CONNECT事件后，会执行connectPromise.trySuccess()
                                 ChannelPromise connectPromise = AbstractNioChannel.this.connectPromise;
                                 if (connectPromise != null && !connectPromise.isDone()
                                         && connectPromise.tryFailure(new ConnectTimeoutException(
                                                 "connection timed out after " + connectTimeoutMillis + " ms: " +
                                                         remoteAddress))) {
+                                    // 关闭连接句柄，释放资源，设置异常堆栈并发起取消注册
                                     close(voidPromise());
                                 }
                             }
                         }, connectTimeoutMillis, TimeUnit.MILLISECONDS);
                     }
 
-                    // 如果在连接超时之前获取到连接结果，则删除连接超时定时器，防止其被触发
+                    // 情形二:如果在连接超时之前获取到连接结果，则删除连接超时定时器，防止其被触发
                     promise.addListener(new ChannelFutureListener() {
                         @Override
                         public void operationComplete(ChannelFuture future) {
                             // If the connect future is cancelled we also cancel the timeout and close the
                             // underlying socket.
+                            // 如果接受完成通知则判断连接是否被取消
                             if (future.isCancelled()) {
                                 if (connectTimeoutFuture != null) {
                                     connectTimeoutFuture.cancel(false);
                                 }
                                 connectPromise = null;
+                                // 被取消则关闭连接句柄，释放资源，发起取消注册
                                 close(voidPromise());
                             }
                         }
@@ -309,6 +314,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             // Regardless if the connection attempt was cancelled, channelActive() event should be triggered,
             // because what happened is what happened.
             if (!wasActive && active) {
+                // 此处最终会将NioSocketChannel中的selectionKey设置为SelectionKey.OP_READ，用于监听网络读操作位
                 pipeline().fireChannelActive();
             }
 
@@ -329,6 +335,9 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             closeIfClosed();
         }
 
+        /**
+         * 在监听到OP_CONNECT事件(即接收到服务端的TCP握手应答消息)后会触发finishConnect逻辑
+         */
         @Override
         public final void finishConnect() {
             // Note this method is invoked by the event loop only if the connection attempt was

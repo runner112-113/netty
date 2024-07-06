@@ -140,6 +140,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             }
             final ChannelPipeline pipeline = pipeline();
             final ByteBufAllocator allocator = config.getAllocator();
+            // AdaptiveRecvByteBufAllocator（缓冲区大小可以动态调整的ByteBuf分配器）、FixedRecvByteBufAllocator
             final RecvByteBufAllocator.Handle allocHandle = recvBufAllocHandle();
             allocHandle.reset(config);
 
@@ -148,11 +149,15 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             try {
                 do {
                     byteBuf = allocHandle.allocate(allocator);
+                    // 消息的异步读取 doReadBytes
                     allocHandle.lastBytesRead(doReadBytes(byteBuf));
+                    // 没有就绪的消息可读或者发生了I/O异常
                     if (allocHandle.lastBytesRead() <= 0) {
                         // nothing was read. release the buffer.
+                        // 释放缓冲区
                         byteBuf.release();
                         byteBuf = null;
+                        // close置为true 用于关闭连接 释放资源
                         close = allocHandle.lastBytesRead() < 0;
                         if (close) {
                             // There is nothing left to read as we received an EOF.
@@ -164,11 +169,20 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                     allocHandle.incMessagesRead(1);
                     readPending = false;
                     // 触发ChannelRead
+                    /**
+                     * 完成一次异步读之后，就会触发一次ChannelRead事件，这里要特别提醒大家的是：
+                     * 完成一次读操作，并不意味着读到了一条完整的消息，因为TCP底层存在组包和粘包，所以，一次读操作可能包含多条消息，也可能是一条不完整的消息。
+                     * 因此不要把它跟读取的消息个数等同起来。在没有做任何半包处理的情况下，以ChannelRead的触发次数做计数器来进行性能分析和统计，是完全错误的。
+                     * 当然，如果你使用了半包解码器或者处理了半包，就能够实现一次ChannelRead对应一条完整的消息。
+                     */
                     pipeline.fireChannelRead(byteBuf);
+                    // 释放接收缓冲区
                     byteBuf = null;
                 } while (allocHandle.continueReading());
 
+                // 调用接收缓冲区容量分配器的Handler记录方法，将本次读取的总字节数传入到record()方法中进行缓冲区的动态分配，为下一次读取选取更加合适的缓冲区容量
                 allocHandle.readComplete();
+                // 完成多路复用器本轮读操作之后，触发ChannelReadComplete事件
                 pipeline.fireChannelReadComplete();
 
                 if (close) {
@@ -290,6 +304,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
     protected final void incompleteWrite(boolean setOpWrite) {
         // Did not write completely.
         if (setOpWrite) {
+            // 还未写完 通知Reactor线程还有半包消息待发送
             setOpWrite();
         } else {
             // It is possible that we have set the write OP, woken up by NIO because the socket is writable, and then
