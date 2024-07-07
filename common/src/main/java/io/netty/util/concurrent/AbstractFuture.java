@@ -29,12 +29,15 @@ public abstract class AbstractFuture<V> implements Future<V> {
 
     @Override
     public V get() throws InterruptedException, ExecutionException {
+        // 调用await(方法进行无限期阻塞，当I/O操作完成后会被notify()。
         await();
 
+        // 如果没有异常，则通过getNowO方法获取结果并返回。
         Throwable cause = cause();
         if (cause == null) {
             return getNow();
         }
+        // 有异常，将异常堆栈进行包装，抛出ExecutionException。
         if (cause instanceof CancellationException) {
             throw (CancellationException) cause;
         }

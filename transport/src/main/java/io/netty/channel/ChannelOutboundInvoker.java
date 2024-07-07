@@ -21,6 +21,10 @@ import io.netty.util.concurrent.FutureListener;
 import java.net.ConnectException;
 import java.net.SocketAddress;
 
+/**
+ * ChannelOutbound事件
+ * 由用户线程或者代码发起的I/O操作 被称作outbound事件
+ */
 public interface ChannelOutboundInvoker {
 
     /**

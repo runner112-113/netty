@@ -23,6 +23,7 @@ import java.util.RandomAccess;
 
 import static io.netty.util.internal.ObjectUtil.checkNotNull;
 
+
 /**
  * Special {@link AbstractList} implementation which is used within our codec base classes.
  */

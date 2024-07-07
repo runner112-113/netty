@@ -100,6 +100,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     // - cumulation cannot be resized to accommodate the additional data
                     // - cumulation can be expanded with a reallocation operation to accommodate but the buffer is
                     //   assumed to be shared (e.g. refCnt() > 1) and the reallocation may not be safe.
+                    // 动态扩展缓冲区
                     return expandCumulation(alloc, cumulation, in);
                 }
                 cumulation.writeBytes(in, in.readerIndex(), required);
@@ -284,6 +285,9 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
             selfFiredChannelRead = true;
             CodecOutputList out = CodecOutputList.newInstance();
             try {
+                // 通过cumulation是否为空判断解码器是否缓存了没有解码完成的半包消息
+                // 如果为空，说明是首次解码或者最近一次已经处理完了半包消息，没有缓存的半包消息需要处理，直接将需要解码的ByteBuf赋值给cumulation；
+                // 如果cumulation缓存有上次没有解码完成的ByteBuf，则进行复制操作，将需要解码的ByteBuf复制到cumulation中
                 first = cumulation == null;
                 cumulation = cumulator.cumulate(ctx.alloc(),
                         first ? Unpooled.EMPTY_BUFFER : cumulation, (ByteBuf) msg);
@@ -321,6 +325,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                 }
             }
         } else {
+            // 直接透传
             ctx.fireChannelRead(msg);
         }
     }
@@ -466,30 +471,45 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                 }
 
                 int oldInputLength = in.readableBytes();
+                // 执行用户Handler执行解码
                 decodeRemovalReentryProtection(ctx, in, out);
 
                 // Check if this handler was removed before continuing the loop.
                 // If it was removed, it is not safe to continue to operate on the buffer.
                 //
                 // See https://github.com/netty/netty/issues/1664
+                // 如果当前的ChannelHandlerContext已经被移除，则不能继续进行解码，直接退出循环
                 if (ctx.isRemoved()) {
                     break;
                 }
 
+                /**
+                 * 业务解码器需要遵守Netty的某些契约，解码器才能正常工作，否则可能会导致功能错误，
+                 * 最重要的契约就是：如果业务解码器认为当前的字节缓冲区无法完成业务层的解码，需要将readIndex复位，告诉Netty解码条件不满足应当退出解码，继续读取数据报。
+                 */
+                // 如果输出的out列表长度没变化，说明解码没有成功
                 if (out.isEmpty()) {
+                    // 如果用户解码器没有消费ByteBuf，则说明是个半包消息，需要由I/O线程继续读取后续的数据报，在这种场景下要退出循环。
                     if (oldInputLength == in.readableBytes()) {
                         break;
                     } else {
+                        // 如果用户解码器消费了ByteBuf，说明可以解码可以继续进行。
                         continue;
                     }
                 }
 
+                /**
+                 * 如果用户解码器没有消费ByteBuf，但是却解码出了一个或者多个对象，这种行为被认为是非法的，需要抛出DecoderException异常。
+                 */
                 if (oldInputLength == in.readableBytes()) {
                     throw new DecoderException(
                             StringUtil.simpleClassName(getClass()) +
                                     ".decode() did not read anything but decoded a message.");
                 }
 
+                /**
+                 * 最后通过isSingleDecode进行判断，如果是单条消息解码器，第一次解码完成之后就退出循环
+                 */
                 if (isSingleDecode()) {
                     break;
                 }

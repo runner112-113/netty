@@ -15,6 +15,9 @@
  */
 package io.netty.channel;
 
+/**
+ * Inbound事件 都是从I/O线程流向用户业务Handler的
+ */
 public interface ChannelInboundInvoker {
 
     /**

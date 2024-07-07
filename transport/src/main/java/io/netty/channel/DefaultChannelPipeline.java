@@ -41,6 +41,12 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 /**
  * The default {@link ChannelPipeline} implementation.  It is usually created
  * by a {@link Channel} implementation when the {@link Channel} is created.
+ *
+ *
+ * ChannelPipeline支持运行态动态的添加或者删除ChannelHandler，在某些场景下这个特性非常实用。
+ * 例如当业务高峰期需要对系统做拥塞保护时，就可以根据当前的系统除拥塞时间进行判断，如果处于业务高峰期，则动态地将系统拥塞保护ChannelHandler添加到当前的ChannelPipeline中，当高峰期过去之后，就可以动态删保护ChannelHandler了。
+ * ChannelPipeline是线程安全的（加了synchronized操作），这意味着N个业务线程可以并发地操作ChannelPipeline而不存在多线程并发问题。
+ * 但是，ChannelHandler却不是线程安全的，这意味着尽管ChannelPipeline是线程安全的，但是用户仍然需要自己保证ChannelHandler的线程安全。
  */
 public class DefaultChannelPipeline implements ChannelPipeline {
 
@@ -595,6 +601,8 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     private static void checkMultiplicity(ChannelHandler handler) {
         if (handler instanceof ChannelHandlerAdapter) {
             ChannelHandlerAdapter h = (ChannelHandlerAdapter) handler;
+            // 如果ChannelHandlerContext不是可以在多个ChannelPipeline中共享的，
+            // 且已经被添加到ChannelPipeline中，则抛出ChannelPipelineException异常
             if (!h.isSharable() && h.added) {
                 throw new ChannelPipelineException(
                         h.getClass().getName() +
@@ -604,6 +612,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    /**
+     * 发送新增ChannelHandlerContext通知消息
+     * @param ctx
+     */
     private void callHandlerAdded0(final AbstractChannelHandlerContext ctx) {
         try {
             ctx.callHandlerAdded();

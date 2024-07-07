@@ -472,6 +472,11 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
             // Check timeout every 64 tasks because nanoTime() is relatively expensive.
             // XXX: Hard-coded value - will make it configurable if it is really a problem.
+            /**
+             * 由于获取系统纳秒时间是个耗时的操作，每次循环都获取当前系统纳秒时间进行超时判断会降低性能。
+             * 为了提升性能，每执行60次循环判断一次，如果当前系统时间已经到了分配给非1/O操作的超时时间，则退出循环。
+             * 这是为了防止由于非I/O任务过多导致I/O操作被长时间阻塞。
+             */
             if ((runTasks & 0x3F) == 0) {
                 lastExecutionTime = getCurrentTimeNanos();
                 if (lastExecutionTime >= deadline) {

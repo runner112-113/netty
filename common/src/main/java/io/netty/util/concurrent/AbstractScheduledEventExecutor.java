@@ -150,6 +150,10 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
     /**
      * Return the {@link Runnable} which is ready to be executed with the given {@code nanoTime}.
      * You should use {@link #getCurrentTimeNanos()} to retrieve the correct {@code nanoTime}.
+     *
+     * 首先从定时任务消息队列中弹出消息进行处理，如果消息队列为空，则退出循环。根据当前的时间戳进行判断，
+     * 如果该定时任务已经或者正处于超时状态，则将其加入到执行TaskQueue中，同时从延时队列中删除。
+     * 定时任务如果没有超时，说明本轮循环不需要处理，直接退出即可，代
      */
     protected final Runnable pollScheduledTask(long nanoTime) {
         assert inEventLoop();

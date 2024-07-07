@@ -166,6 +166,8 @@ public class LengthFieldPrepender extends MessageToMessageEncoder<ByteBuf> {
         checkPositiveOrZero(length, "length");
 
         switch (lengthFieldLength) {
+            // o长度字段所占字节为1：如果使用1个Byte字节代表消息长度，则最大长度需要小于256个字节。
+            // 对长度进行校验，如果校验失败，则抛出参数非法异常；若校验通过，则创建新的ByteBuf并通过writeByte将长度值写入到ByteBuf中。
         case 1:
             if (length >= 256) {
                 throw new IllegalArgumentException(

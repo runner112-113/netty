@@ -102,6 +102,7 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
             if (acceptOutboundMessage(msg)) {
                 @SuppressWarnings("unchecked")
                 I cast = (I) msg;
+                // 判断缓冲区的类型，对于直接内存分配ioBuffer（堆外内存），对于堆内存通过heapBuffer方法分配。
                 buf = allocateBuffer(ctx, cast, preferDirect);
                 try {
                     encode(ctx, cast, buf);
@@ -109,9 +110,11 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
                     ReferenceCountUtil.release(cast);
                 }
 
+                // 如果缓冲区包含可发送的字节，则调用ChannelHandlerContext的write方法发送ByteBuf;
                 if (buf.isReadable()) {
                     ctx.write(buf, promise);
                 } else {
+                    // 如果缓冲区没有包含可写的字节，则需要释放编码后的ByteBuf，写入一个空的ByteBuf 到ChannelHandlerContext中。
                     buf.release();
                     ctx.write(Unpooled.EMPTY_BUFFER, promise);
                 }

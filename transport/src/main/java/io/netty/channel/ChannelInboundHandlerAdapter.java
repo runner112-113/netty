@@ -39,6 +39,7 @@ public class ChannelInboundHandlerAdapter extends ChannelHandlerAdapter implemen
      *
      * Sub-classes may override this method to change behavior.
      */
+    // 加了Skip注解 所以这些方法在执行的过程中会被忽略，直接跳到下一个ChannelHandler中执行对象的方法
     @Skip
     @Override
     public void channelRegistered(ChannelHandlerContext ctx) throws Exception {

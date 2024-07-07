@@ -81,6 +81,7 @@ public abstract class MessageToMessageDecoder<I> extends ChannelInboundHandlerAd
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         CodecOutputList out = CodecOutputList.newInstance();
         try {
+            // 判断是否是可接收类型
             if (acceptInboundMessage(msg)) {
                 @SuppressWarnings("unchecked")
                 I cast = (I) msg;
@@ -98,6 +99,11 @@ public abstract class MessageToMessageDecoder<I> extends ChannelInboundHandlerAd
             throw new DecoderException(e);
         } finally {
             try {
+                // 循环遍历out集合
+                /**
+                 * 环调用ChannelHandlerContext的fireChannelRead方法，通知后续的ChannelHandler继续进行处理。
+                 * 循环通知完成之后，通过recycle方法释放CodecOutputList对象。
+                 */
                 int size = out.size();
                 for (int i = 0; i < size; i++) {
                     ctx.fireChannelRead(out.getUnsafe(i));
