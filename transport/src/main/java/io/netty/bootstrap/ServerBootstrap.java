@@ -139,6 +139,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         final ChannelHandler currentChildHandler = childHandler;
         final Entry<ChannelOption<?>, Object>[] currentChildOptions = newOptionsArray(childOptions);
         final Entry<AttributeKey<?>, Object>[] currentChildAttrs = newAttributesArray(childAttrs);
+        // SPI引入的ChannelInitializerExtension实现类
         final Collection<ChannelInitializerExtension> extensions = getInitializerExtensions();
 
         // 添加ChannelHandler
@@ -163,6 +164,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                 });
             }
         });
+        // 处理SPI引入的ChannelInitializerExtension实现类逻辑
         if (!extensions.isEmpty() && channel instanceof ServerChannel) {
             ServerChannel serverChannel = (ServerChannel) channel;
             for (ChannelInitializerExtension extension : extensions) {
@@ -226,8 +228,6 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
          * 第一步：将启动时传入的childHandler加入到客户端SocketChannel的ChannelPipeline中：
          * 第二步：设置客户端SocketChannel的TCP参数；
          * 第三步：注册SocketChannel到多路复用器。
-         * @param ctx
-         * @param msg
          */
         @Override
         @SuppressWarnings("unchecked")
