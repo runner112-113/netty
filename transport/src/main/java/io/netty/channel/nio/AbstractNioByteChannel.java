@@ -39,6 +39,8 @@ import static io.netty.channel.internal.ChannelUtils.WRITE_STATUS_SNDBUF_FULL;
 
 /**
  * {@link AbstractNioChannel} base class for {@link Channel}s that operate on bytes.
+ *
+ * 发送的是ByteBuf或者FileRegion，它们可以直接被发送
  */
 public abstract class AbstractNioByteChannel extends AbstractNioChannel {
     private static final ChannelMetadata METADATA = new ChannelMetadata(false, 16);
@@ -230,13 +232,16 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
     private int doWriteInternal(ChannelOutboundBuffer in, Object msg) throws Exception {
         if (msg instanceof ByteBuf) {
             ByteBuf buf = (ByteBuf) msg;
+            // 消息不可读 --> 废弃
             if (!buf.isReadable()) {
                 in.remove();
                 return 0;
             }
 
+            // 将ByteBuf写到Channel
             final int localFlushedAmount = doWriteBytes(buf);
             if (localFlushedAmount > 0) {
+                // 更新发送进度信息
                 in.progress(localFlushedAmount);
                 if (!buf.isReadable()) {
                     in.remove();
@@ -269,8 +274,11 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
     protected void doWrite(ChannelOutboundBuffer in) throws Exception {
         int writeSpinCount = config().getWriteSpinCount();
         do {
+            // 从发送消息环形数组ChannelOutboundBuffer弹出一条消息，
             Object msg = in.current();
+            // 判断该消息是否为空
             if (msg == null) {
+                // 如果为空，说明消息发送数组中所有待发送的消息都已经发送完成，清除半包标识，然后退出循环
                 // Wrote all messages.
                 clearOpWrite();
                 // Directly return here so incompleteWrite(...) is not called.
@@ -279,6 +287,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             writeSpinCount -= doWriteInternal(in, msg);
         } while (writeSpinCount > 0);
 
+        // 设置写半包标识 启动刷新线程继续发送之前没有发送完全的半包消息（写半包）
         incompleteWrite(writeSpinCount < 0);
     }
 
@@ -301,6 +310,13 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                 "unsupported message type: " + StringUtil.simpleClassName(msg) + EXPECTED_TYPES);
     }
 
+    /**
+     * 1. 如果SelectionKey的OP_WRITE被设置，多路复用器会不断轮询对应的Channel，用于处理没有发送完成的半包消息，直到清除SelectionKey的OP_WRITE操作位。
+     * 因此，设置了OP_WRITE操作位后，就不需要启动独立的Runnable来负责发送半包消息了。
+     * 2. 如果没有设置OP_WRITE操作位，需要启动独立的Runnable，将其加入到EventLoop中执行，由Runnable负责半包消息的发送。
+     * 它的实现很简单，就是调用flush()方法来发送缓冲数组中的消息。
+     * @param setOpWrite
+     */
     protected final void incompleteWrite(boolean setOpWrite) {
         // Did not write completely.
         if (setOpWrite) {

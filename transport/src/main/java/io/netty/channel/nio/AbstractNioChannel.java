@@ -51,6 +51,8 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             InternalLoggerFactory.getInstance(AbstractNioChannel.class);
 
     private final SelectableChannel ch;
+    // NioServerSocketChannel对应OP_ACCEPT
+    // NioSocketChannel对应OP_READ
     protected final int readInterestOp;
     volatile SelectionKey selectionKey;
     boolean readPending;
@@ -64,9 +66,12 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     /**
      * The future of the current connection attempt.  If not null, subsequent
      * connection attempts will fail.
+     * 连接操作结果
      */
     private ChannelPromise connectPromise;
+    // 连接超时定时器
     private Future<?> connectTimeoutFuture;
+    // 请求的通行地址
     private SocketAddress requestedRemoteAddress;
 
     /**
@@ -396,13 +401,21 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                 // 0表示只注册，不监听任何网络操作;这样做的原因如下:
                 // 1.注册方法是多态的，它既可以被NioServerSocketChannel用来监听客户端的连接接入，也可以注册SocketChannel用来监听网络读或者写操作
                 // 2.通过SelectionKey的interestOps(int ops)方法可以方便地修改监听操作位。所以，此处注册需要获取SelectionKey并给AbstractNioChannel的成员变量selectionKey赋值
-                // 此处也带上了attachment，及对应的AbstractNioChannel具体实现
+                // 此处也带上了attachment，处将AbstractNioChannel的实现子类自身当作附件注册
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;
             } catch (CancelledKeyException e) {
+                /**
+                 * 如果当前注册返回的selectionKey已经被取消，则抛出CancelledKeyException异常，捕获该异常进行处理。
+                 * 如果是第一次处理该异常，调用多路复用器的selectNow方法将已经取消的selectionKey从多路复用器中删除掉。操作成功之后，将selected置为true，说明之前失效的selectionKey已经被删除掉。
+                 * 继续发起下一次注册操作，如果成功则退出，如果仍然发生CancelledKeyException异常，说明我们无法删除已经被取消的selectionKey，按照JDK的API说明，这种意外不应该发生。
+                 * 如果发生这种问题，则说明可能NIO的相关类库存在不可恢复的BUG，直接抛出CancelledKeyException异常到上层进行统一处理。
+                 */
                 if (!selected) {
                     // Force the Selector to select now as the "canceled" SelectionKey may still be
                     // cached and not removed because no Select.select(..) operation was called yet.
+                    // 当一个SelectionKey被取消时，它不会立即从选择器中移除，而是被标记为取消状态。
+                    // 这些取消的键会在下一次调用select()或selectNow()方法时从选择器中移除。
                     eventLoop().selectNow();
                     selected = true;
                 } else {

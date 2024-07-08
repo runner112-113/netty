@@ -1591,6 +1591,10 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf>, 
      *
      * @throws IndexOutOfBoundsException
      *         if {@code length} is greater than {@code this.readableBytes}
+     *
+     *
+     * 返回当前ByteBuf新创建的子区域，子区域与原ByteBuf共享缓冲区，但是独立维护自己的readerlndex和writerlndex，新创建的子区域readerlndex为0，
+     * writerlndex为length如果读取的长度length大于当前操作的ByteBuf的可写字节数，将抛出IndexOutOfBoundsException，操作失败
      */
     public abstract ByteBuf readSlice(int length);
 
@@ -1721,6 +1725,13 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf>, 
      *         if {@code length} is greater than {@code this.readableBytes}
      * @throws IOException
      *         if the specified channel threw an exception during I/O
+     *
+     * 将当前ByteBuf的数据写入到目标GatheringByteChannel中，写入的最大字节数长度为length
+     * 注意：由于GatheringByteChannel是非阻塞Channel，调用它的write操作并不能保证一次能够将所有需要写入的字节数都写入成功，即存在“写半包”问题。
+     * 因此，它写入的字节数范围为[0,length]如果操作成功，当前ByteBuf的readerlndex+=实际写入的字节数
+     * 如果需要写入的length大于当前ByteBuf的可读字节数，则抛出IndexOutOfBoundsException异常：
+     * 如果操作过程中GatheringByteChannel发生了IO异常，则抛出1OException，无论抛出何种异常，操作都将失败
+     * 与其他read方法不同的是，本方法的返回值不是当前的ByteBuf,而是写入GatheringByteChannel的实际字节数
      */
     public abstract int readBytes(GatheringByteChannel out, int length) throws IOException;
 
@@ -2375,6 +2386,8 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf>, 
     /**
      * Returns {@code true} if and only if this buffer has a reference to the low-level memory address that points
      * to the backing data.
+     *
+     * 内存地址相关的接口主要由UnsafeByteBuf使用，它基于SUNJDK的sun.misc.Unsafe方法实现
      */
     public abstract boolean hasMemoryAddress();
 

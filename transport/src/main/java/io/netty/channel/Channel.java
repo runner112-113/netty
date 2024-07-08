@@ -78,11 +78,20 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
 
     /**
      * Returns the globally unique identifier of this {@link Channel}.
+     *
+     * Channelld是Channel的唯一标识，它的可能生成策略如下;
+     * （1）机器的MAC地址（EUI-48或者EUI-64）等可以代表全局唯一的信息;
+     * （2）当前的进程ID;
+     * （3）当前系统时间的毫秒System.currentTimeMillisO;
+     * （4）当前系统时间纳秒数System.nanoTimeO;
+     * （5）32位的随机整型数；（6）32位自增的序列数。
      */
     ChannelId id();
 
     /**
      * Return the {@link EventLoop} this {@link Channel} was registered to.
+     *
+     * 获取Channel注册的EventLoop
      */
     EventLoop eventLoop();
 
@@ -91,31 +100,42 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      *
      * @return the parent channel.
      *         {@code null} if this channel does not have a parent channel.
+     *
+     * 对于服务端Channel而言，它的父Channel为空：
+     * 对于客户端Channel，它的父Channel就是创建它的ServerSocketChannel。
      */
     Channel parent();
 
     /**
      * Returns the configuration of this channel.
+     *
+     * 获取当前Channel的配置信息，例如CONNECT_TIMEOUT_MILLIS
      */
     ChannelConfig config();
 
     /**
      * Returns {@code true} if the {@link Channel} is open and may get active later
+     * 判断当前Channel是否已经打开
      */
     boolean isOpen();
 
     /**
      * Returns {@code true} if the {@link Channel} is registered with an {@link EventLoop}.
+     * 判断当前Channel是否已经注册到EventLoop上
      */
     boolean isRegistered();
 
     /**
      * Return {@code true} if the {@link Channel} is active and so connected.
+     *
+     * 判断当前Channel是否已经处于激活状态
      */
     boolean isActive();
 
     /**
      * Return the {@link ChannelMetadata} of the {@link Channel} which describe the nature of the {@link Channel}.
+     *
+     * 获取当前Channel的元数据描述信息，包括TCP参数配置等
      */
     ChannelMetadata metadata();
 
@@ -127,6 +147,8 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      *
      * @return the local address of this channel.
      *         {@code null} if this channel is not bound.
+     *
+     *  获取当前Channel的本地绑定地址
      */
     SocketAddress localAddress();
 
@@ -143,6 +165,8 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      *         use {@link DatagramPacket#recipient()} to determine
      *         the origination of the received message as this method will
      *         return {@code null}.
+     *
+     *  获取当前Channel通信的远程Socket地址
      */
     SocketAddress remoteAddress();
 
@@ -212,6 +236,9 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      *   <li>{@link #deregister(ChannelPromise)}</li>
      *   <li>{@link #voidPromise()}</li>
      * </ul>
+     *
+     *
+     * 实际的网络I/O操作基本都是由Unsafe功能类负责实现的
      */
     interface Unsafe {
 
@@ -281,6 +308,8 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
         /**
          * Schedules a read operation that fills the inbound buffer of the first {@link ChannelInboundHandler} in the
          * {@link ChannelPipeline}.  If there's already a pending read operation, this method does nothing.
+         *
+         * 设置网络操作位为读用于读取消息
          */
         void beginRead();
 
@@ -291,6 +320,8 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
 
         /**
          * Flush out all write operations scheduled via {@link #write(Object, ChannelPromise)}.
+         *
+         * 将缓冲数组中的消息写入Channel中
          */
         void flush();
 
@@ -298,11 +329,15 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
          * Return a special ChannelPromise which can be reused and passed to the operations in {@link Unsafe}.
          * It will never be notified of a success or error and so is only a placeholder for operations
          * that take a {@link ChannelPromise} as argument but for which you not want to get notified.
+         *
+         * 返回一个特殊的可重用和传递的ChannelPromise，不用于操作成功或者失败的通知器，仅仅作为一个容器被使用
          */
         ChannelPromise voidPromise();
 
         /**
          * Returns the {@link ChannelOutboundBuffer} of the {@link Channel} where the pending write requests are stored.
+         *
+         * 返回消息发送的缓冲区
          */
         ChannelOutboundBuffer outboundBuffer();
     }

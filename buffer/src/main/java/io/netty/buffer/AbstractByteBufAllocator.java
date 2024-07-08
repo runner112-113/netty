@@ -248,6 +248,20 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         return StringUtil.simpleClassName(this) + "(directByDefault: " + directByDefault + ')';
     }
 
+    /**
+     * 采用倍增或者步进算法的原因如下：如果以minNewCapacity作为目标容量，则本次扩容后的可写字节数刚好够本次写入使用。
+     * 写入完成后，它的可写字节数会变为0，下次做写入操作的时候，需要再次动态扩张。
+     * 这样就会形成第一次动态扩张后，每次写入操作都会进行动态扩张，由于动态扩张需要进行内存复制，频繁的内存复制会导致性能下降。
+     * 采用先倍增后步进的原因如下：当内存比较小的情况下，倍增操作并不会带来太多的内存浪费，例如64字节-->128字节-->256字节，这样的内存扩张方式对于大多数应用系统是可以接受的。
+     * 但是，当内存增长到一定阈值后，再进行倍增就可能会带来额外的内存浪费，例如10MB，采用倍增后变为20MB。
+     * 但很有可能系统只需要12MB，则扩张到20MB后会带来8MB的内存浪费。
+     * 由于每个客户端连接都可能维护自已独立的接收和发送缓冲区，这样随着客户读的线性增长，内存浪费也会成比例地增加，因此，达到某个阙值后就需要以步进的方式对内存进行平滑的扩张。
+     *
+     * 这个阈值是个经验值，不同的应用场景，这个值可能不同，此处，ByteBuf取值为4MB。
+     * @param minNewCapacity
+     * @param maxCapacity
+     * @return
+     */
     @Override
     public int calculateNewCapacity(int minNewCapacity, int maxCapacity) {
         checkPositiveOrZero(minNewCapacity, "minNewCapacity");
@@ -258,11 +272,14 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         }
         final int threshold = CALCULATE_THRESHOLD; // 4 MiB page
 
+        // 当需要的新容量正好等于门限阀值时，使用阀值作为新的缓冲区容量
         if (minNewCapacity == threshold) {
             return threshold;
         }
 
         // If over threshold, do not double but just increase by threshold.
+        // 如果新申请的内存空间大于阈值，不能采用倍增的方式（防止内存膨胀和浪费）扩张内存，而采用每次步进4MB的方式进行内存扩张。扩张的时候需要对扩张后的
+        // 内存和最大内存（maxCapacity）进行比较，如果大于缓冲区的最大长度，则使用maxCapacity作为扩容后的缓冲区容量
         if (minNewCapacity > threshold) {
             int newCapacity = minNewCapacity / threshold * threshold;
             if (newCapacity > maxCapacity - threshold) {
@@ -274,6 +291,7 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         }
 
         // 64 <= newCapacity is a power of 2 <= threshold
+        // 如果扩容后的新容量小于阀值，则以64为基数进行倍增，直到倍增后的结果大于或等于需要的容量值
         final int newCapacity = MathUtil.findNextPositivePowerOfTwo(Math.max(minNewCapacity, 64));
         return Math.min(newCapacity, maxCapacity);
     }

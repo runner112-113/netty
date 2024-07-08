@@ -24,8 +24,12 @@ import io.netty.util.internal.ReferenceCountUpdater;
  * Abstract base class for {@link ByteBuf} implementations that count references.
  */
 public abstract class AbstractReferenceCountedByteBuf extends AbstractByteBuf {
+    // 标识refCnt字段在AbstractReferenceCountedByteBuf中的内存地址。
+    // 该内存地址的获取是JDK实现强相关的，如果使用SUN的JDK，它通过sun.misc.Unsafe的objectFieldOffset接口来获得，
+    // ByteBuf的实现子类UnpooledUnsafeDirectByteBuf和PooledUnsafeDirectByteBuf会使用到这个偏移量。
     private static final long REFCNT_FIELD_OFFSET =
             ReferenceCountUpdater.getUnsafeOffset(AbstractReferenceCountedByteBuf.class, "refCnt");
+    // AtomicIntegerFieldUpdater类型变量，通过原子的方式对成员变量进行更新等操作，以实现线程安全，消除锁
     private static final AtomicIntegerFieldUpdater<AbstractReferenceCountedByteBuf> AIF_UPDATER =
             AtomicIntegerFieldUpdater.newUpdater(AbstractReferenceCountedByteBuf.class, "refCnt");
 
@@ -76,6 +80,10 @@ public abstract class AbstractReferenceCountedByteBuf extends AbstractByteBuf {
         updater.resetRefCnt(this);
     }
 
+    /**
+     * 每调用一次retain方法，引用计数器就会加一，由于可能存在多线程并发调用的场景，所以它的累加操作必须是线程安全的
+     * @return
+     */
     @Override
     public ByteBuf retain() {
         return updater.retain(this);

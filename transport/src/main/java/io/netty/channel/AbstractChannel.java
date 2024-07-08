@@ -485,6 +485,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 // 如果由其他线程发起，则封装成一个Task放入消息队列中异步执行。
                 // 此处，由于是由ServerBootstrap所在线程执行的注册操作，所以会将其封装成Task投递到NioEventLoop中执行
                 // 此处会启动线程select
+                // 注意：如果直接执行register()方法，会存在多线程并发操作Channel的问题
                 try {
                     eventLoop.execute(new Runnable() {
                         @Override
@@ -548,6 +549,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 // Close the channel directly to avoid FD leak.
                 closeForcibly();
                 closeFuture.setClosed();
+                // 如果注册过程中发生了异常，则强制关闭连接，将异常堆栈信息设置到ChannelPromise中
                 safeSetFailure(promise, t);
             }
         }
@@ -899,6 +901,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 return;
             }
 
+            // 将message和promise 放入到缓冲区中
             outboundBuffer.addMessage(msg, size, promise);
         }
 
