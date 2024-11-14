@@ -525,7 +525,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                     case SelectStrategy.BUSY_WAIT:
                         // fall-through to SELECT since the busy-wait is not supported with NIO
 
-                        // 如果消息队列中没有消息需要处理，则执行select()方法，由Selector多路复用器轮询，看是否有准备就绪的Channel。
+                        // 如果消息队列中没有消息需要处理，则执行select()方法，由Selector多路复用器轮询，看是否有准备就绪的Channel
                     case SelectStrategy.SELECT:
                         long curDeadlineNanos = nextScheduledTaskDeadlineNanos();
                         if (curDeadlineNanos == -1L) {
@@ -665,7 +665,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         if (selectedKeys != null) {
             processSelectedKeysOptimized();
         } else {
-            // 由于默认未开启selectedKeys优化功能，所以会进入processSelectedKeysPlain分支执行。下
+            // 由于默认未开启selectedKeys优化功能，所以会进入processSelectedKeysPlain分支执行
             processSelectedKeysPlain(selector.selectedKeys());
         }
     }

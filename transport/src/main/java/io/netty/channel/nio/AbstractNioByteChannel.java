@@ -150,6 +150,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             boolean close = false;
             try {
                 do {
+                    // 默认是PooledByteBufAllocator分配iobuffer，直接内存
                     byteBuf = allocHandle.allocate(allocator);
                     // 消息的异步读取 doReadBytes
                     allocHandle.lastBytesRead(doReadBytes(byteBuf));
@@ -170,13 +171,14 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 
                     allocHandle.incMessagesRead(1);
                     readPending = false;
-                    // 触发ChannelRead
+
                     /**
                      * 完成一次异步读之后，就会触发一次ChannelRead事件，这里要特别提醒大家的是：
                      * 完成一次读操作，并不意味着读到了一条完整的消息，因为TCP底层存在组包和粘包，所以，一次读操作可能包含多条消息，也可能是一条不完整的消息。
                      * 因此不要把它跟读取的消息个数等同起来。在没有做任何半包处理的情况下，以ChannelRead的触发次数做计数器来进行性能分析和统计，是完全错误的。
                      * 当然，如果你使用了半包解码器或者处理了半包，就能够实现一次ChannelRead对应一条完整的消息。
                      */
+                    // 触发ChannelRead
                     pipeline.fireChannelRead(byteBuf);
                     // 释放接收缓冲区
                     byteBuf = null;

@@ -142,7 +142,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         // SPI引入的ChannelInitializerExtension实现类
         final Collection<ChannelInitializerExtension> extensions = getInitializerExtensions();
 
-        // 添加ChannelHandler
+        // 添加ChannelInitializer：当Channel注册后会回调initChannel
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) {
@@ -153,7 +153,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                     pipeline.addLast(handler);
                 }
 
-                // 添加ServerBootstrapAcceptor
+                // 添加ServerBootstrapAcceptor(由parentGroup中注册channel的线程来执行)
                 ch.eventLoop().execute(new Runnable() {
                     @Override
                     public void run() {
@@ -232,6 +232,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         @Override
         @SuppressWarnings("unchecked")
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
+            // NioSocketChannel
             final Channel child = (Channel) msg;
 
             // 将启动时传入的childHandler加入到客户端SocketChannel的ChannelPipeline中

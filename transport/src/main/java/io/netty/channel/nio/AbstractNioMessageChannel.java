@@ -69,6 +69,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
         public void read() {
             assert eventLoop().inEventLoop();
             final ChannelConfig config = config();
+            // 拿到channel的pipeline
             final ChannelPipeline pipeline = pipeline();
             final RecvByteBufAllocator.Handle allocHandle = unsafe().recvBufAllocHandle();
             allocHandle.reset(config);
@@ -88,6 +89,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                             break;
                         }
 
+                        // 增加当前read loop message read count
                         allocHandle.incMessagesRead(localRead);
                     } while (continueReading(allocHandle));
                 } catch (Throwable t) {
