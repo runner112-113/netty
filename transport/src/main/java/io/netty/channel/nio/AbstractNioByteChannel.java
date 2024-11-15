@@ -154,7 +154,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                     byteBuf = allocHandle.allocate(allocator);
                     // 消息的异步读取 doReadBytes
                     allocHandle.lastBytesRead(doReadBytes(byteBuf));
-                    // 没有就绪的消息可读或者发生了I/O异常
+                    // 没有就绪的消息可读(读完了)或者发生了I/O异常
                     if (allocHandle.lastBytesRead() <= 0) {
                         // nothing was read. release the buffer.
                         // 释放缓冲区
