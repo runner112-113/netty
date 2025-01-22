@@ -803,6 +803,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 ops &= ~SelectionKey.OP_CONNECT;
                 k.interestOps(ops);
 
+                // 判断三次握手是否成功
                 unsafe.finishConnect();
             }
 

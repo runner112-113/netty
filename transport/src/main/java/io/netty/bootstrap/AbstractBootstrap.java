@@ -346,7 +346,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
         // 当NioServerSocketChannel初始化完成之后，
         // 需要将它注册到Reactor线程的多路复用器上监听新客户端的接入
-        // 使用的parentGroup
+        // 使用的parentGroup - channel上设置了ServerBootstrapAcceptor
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
             // 出现异常 则关闭

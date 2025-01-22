@@ -91,6 +91,7 @@ public final class ByteBufUtil {
             alloc = new AdaptiveByteBufAllocator();
             logger.debug("-Dio.netty.allocator.type: {}", allocType);
         } else {
+            // 默认是PooledByteBufAllocator
             alloc = PooledByteBufAllocator.DEFAULT;
             logger.debug("-Dio.netty.allocator.type: pooled (unknown: {})", allocType);
         }

@@ -1376,6 +1376,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             unsafe.beginRead();
         }
 
+        // 最终在此写出
         @Override
         public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
             unsafe.write(msg, promise);
