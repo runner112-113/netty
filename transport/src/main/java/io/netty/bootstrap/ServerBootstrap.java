@@ -252,7 +252,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             }
 
             try {
-                // 注册SocketChannel到多路复用器
+                // 注册SocketChannel到从Reactor多路复用器
                 // NioSocketChannel的注册方法与ServerSocketChannel的一致，也是将Channel注册到Reactor线程的多路复用器上。
                 // 由于注册的操作位是O，所以，此时NioSocketChannel还不能读取客户端发送的消息，那什么时候修改监听操作位为OPREAD呢?
                 childGroup.register(child).addListener(new ChannelFutureListener() {
