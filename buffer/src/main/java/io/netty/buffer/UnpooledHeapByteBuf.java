@@ -91,6 +91,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
 
     private void setArray(byte[] initialArray) {
         array = initialArray;
+        // 置空之前的tmpNioBuf
         tmpNioBuf = null;
     }
 

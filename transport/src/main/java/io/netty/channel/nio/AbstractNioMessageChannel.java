@@ -31,6 +31,8 @@ import java.util.List;
 
 /**
  * {@link AbstractNioChannel} base class for {@link Channel}s that operate on messages.
+ *
+ * 发送的则是POJO对象
  */
 public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
     boolean inputShutdown;
@@ -67,6 +69,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
         public void read() {
             assert eventLoop().inEventLoop();
             final ChannelConfig config = config();
+            // 拿到channel的pipeline
             final ChannelPipeline pipeline = pipeline();
             final RecvByteBufAllocator.Handle allocHandle = unsafe().recvBufAllocHandle();
             allocHandle.reset(config);
@@ -86,6 +89,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                             break;
                         }
 
+                        // 增加当前read loop message read count
                         allocHandle.incMessagesRead(localRead);
                     } while (continueReading(allocHandle));
                 } catch (Throwable t) {
@@ -143,6 +147,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
             try {
                 boolean done = false;
                 for (int i = config().getWriteSpinCount() - 1; i >= 0; i--) {
+                    // 将消息写到java Channel中
                     if (doWriteMessage(msg, in)) {
                         done = true;
                         break;
@@ -164,6 +169,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                 }
             }
         }
+        // 缓冲区为空，则说明所有消息都发送完毕，清除写半包标识
         if (in.isEmpty()) {
             // Wrote all messages.
             if ((interestOps & SelectionKey.OP_WRITE) != 0) {

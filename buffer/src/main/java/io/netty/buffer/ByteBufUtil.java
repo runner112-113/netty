@@ -91,6 +91,7 @@ public final class ByteBufUtil {
             alloc = new AdaptiveByteBufAllocator();
             logger.debug("-Dio.netty.allocator.type: {}", allocType);
         } else {
+            // 默认是PooledByteBufAllocator
             alloc = PooledByteBufAllocator.DEFAULT;
             logger.debug("-Dio.netty.allocator.type: pooled (unknown: {})", allocType);
         }
@@ -159,6 +160,9 @@ public final class ByteBufUtil {
     /**
      * Returns a <a href="https://en.wikipedia.org/wiki/Hex_dump">hex dump</a>
      * of the specified byte array's sub-region.
+     *
+     *
+     * 将参数ByteBuf的内容以十六进制字符串的方式打印出来，用于输出日志或者打印码流，方便问题定位，提升系统的可维护性。
      */
     public static String hexDump(byte[] array, int fromIndex, int length) {
         return HexUtil.hexDump(array, fromIndex, length);

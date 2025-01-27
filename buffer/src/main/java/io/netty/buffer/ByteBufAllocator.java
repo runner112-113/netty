@@ -26,12 +26,16 @@ public interface ByteBufAllocator {
     /**
      * Allocate a {@link ByteBuf}. If it is a direct or heap buffer
      * depends on the actual implementation.
+     *
+     * 分配一个字节缓冲区，缓冲区的类型由ByteBufAllocator的实现类决定
      */
     ByteBuf buffer();
 
     /**
      * Allocate a {@link ByteBuf} with the given initial capacity.
      * If it is a direct or heap buffer depends on the actual implementation.
+     *
+     * 分配一个初始容量为initialCapacity的字节缓冲区，缓冲区的类型由ByteBufAllocator的实现类决定
      */
     ByteBuf buffer(int initialCapacity);
 
@@ -39,11 +43,15 @@ public interface ByteBufAllocator {
      * Allocate a {@link ByteBuf} with the given initial capacity and the given
      * maximal capacity. If it is a direct or heap buffer depends on the actual
      * implementation.
+     *
+     * 分配一个初始容量为initialCapacity，最大容量为maxCapacity的字节缓冲区，缓冲区的类型由ByteBufAllocator的实现类决定
      */
     ByteBuf buffer(int initialCapacity, int maxCapacity);
 
     /**
      * Allocate a {@link ByteBuf}, preferably a direct buffer which is suitable for I/O.
+     *
+     * 分配一个初始容量为initialCapacity，最大容量为maxCapacity的directbuffer，因为directbuffer的I/O操作性能更高
      */
     ByteBuf ioBuffer();
 
@@ -70,6 +78,8 @@ public interface ByteBufAllocator {
     /**
      * Allocate a heap {@link ByteBuf} with the given initial capacity and the given
      * maximal capacity.
+     *
+     * 分配一个初始容量为initialCapacity，最大容量为maxCapacity的heapbuffer
      */
     ByteBuf heapBuffer(int initialCapacity, int maxCapacity);
 
@@ -86,6 +96,8 @@ public interface ByteBufAllocator {
     /**
      * Allocate a direct {@link ByteBuf} with the given initial capacity and the given
      * maximal capacity.
+     *
+     * 分配一个初始容量为initialCapacity，最大容量为maxCapacity的direct buffer
      */
     ByteBuf directBuffer(int initialCapacity, int maxCapacity);
 
@@ -98,6 +110,8 @@ public interface ByteBufAllocator {
     /**
      * Allocate a {@link CompositeByteBuf} with the given maximum number of components that can be stored in it.
      * If it is a direct or heap buffer depends on the actual implementation.
+     *
+     * 分配一个最大容量为maxCapacity的CompositeByteBuf，内存类型由ByteBufAllocator的实现类决定
      */
     CompositeByteBuf compositeBuffer(int maxNumComponents);
 
@@ -123,6 +137,8 @@ public interface ByteBufAllocator {
 
     /**
      * Returns {@code true} if direct {@link ByteBuf}'s are pooled
+     *
+     * 是否使用了直接内存内存池
      */
     boolean isDirectBufferPooled();
 

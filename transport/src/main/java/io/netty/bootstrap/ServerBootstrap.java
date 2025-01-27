@@ -139,9 +139,10 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         final ChannelHandler currentChildHandler = childHandler;
         final Entry<ChannelOption<?>, Object>[] currentChildOptions = newOptionsArray(childOptions);
         final Entry<AttributeKey<?>, Object>[] currentChildAttrs = newAttributesArray(childAttrs);
+        // SPI引入的ChannelInitializerExtension实现类
         final Collection<ChannelInitializerExtension> extensions = getInitializerExtensions();
 
-        // 添加ChannelHandler
+        // 添加ChannelInitializer：当Channel注册后会回调initChannel
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) {
@@ -152,7 +153,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                     pipeline.addLast(handler);
                 }
 
-                // 添加ServerBootstrapAcceptor
+                // 添加ServerBootstrapAcceptor(由parentGroup中注册channel的线程来执行)
                 ch.eventLoop().execute(new Runnable() {
                     @Override
                     public void run() {
@@ -163,6 +164,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                 });
             }
         });
+        // 处理SPI引入的ChannelInitializerExtension实现类逻辑
         if (!extensions.isEmpty() && channel instanceof ServerChannel) {
             ServerChannel serverChannel = (ServerChannel) channel;
             for (ChannelInitializerExtension extension : extensions) {
@@ -226,12 +228,11 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
          * 第一步：将启动时传入的childHandler加入到客户端SocketChannel的ChannelPipeline中：
          * 第二步：设置客户端SocketChannel的TCP参数；
          * 第三步：注册SocketChannel到多路复用器。
-         * @param ctx
-         * @param msg
          */
         @Override
         @SuppressWarnings("unchecked")
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
+            // NioSocketChannel
             final Channel child = (Channel) msg;
 
             // 将启动时传入的childHandler加入到客户端SocketChannel的ChannelPipeline中

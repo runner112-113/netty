@@ -66,6 +66,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
         }
     }
 
+    // 用于配置TCP参数
     private final ServerSocketChannelConfig config;
 
     /**
@@ -117,6 +118,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
     public boolean isActive() {
         // As java.nio.ServerSocketChannel.isBound() will continue to return true even after the channel was closed
         // we will also need to check if it is open.
+        // isBound：判断服务器的监听端口是否处于绑定状态
         return isOpen() && javaChannel().socket().isBound();
     }
 
@@ -139,6 +141,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
     @Override
     protected void doBind(SocketAddress localAddress) throws Exception {
         if (PlatformDependent.javaVersion() >= 7) {
+            // backlog：允许客户端排队的最大数量
             javaChannel().bind(localAddress, config.getBacklog());
         } else {
             javaChannel().socket().bind(localAddress, config.getBacklog());
@@ -150,6 +153,12 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
         javaChannel().close();
     }
 
+    /**
+     * 对于NioServerSocketChannel，它的读取操作就是接收客户端的连接，创建NioSocketChannel对象。
+     * @param buf
+     * @return
+     * @throws Exception
+     */
     @Override
     protected int doReadMessages(List<Object> buf) throws Exception {
         // 接收客户端连接

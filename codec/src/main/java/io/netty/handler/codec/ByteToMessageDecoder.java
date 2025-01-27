@@ -304,6 +304,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     if (cumulation != null && !cumulation.isReadable()) {
                         numReads = 0;
                         try {
+                            // 释放缓冲区
                             cumulation.release();
                         } catch (IllegalReferenceCountException e) {
                             //noinspection ThrowFromFinallyBlock
