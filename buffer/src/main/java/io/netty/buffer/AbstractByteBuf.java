@@ -861,6 +861,10 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return Double.longBitsToDouble(readLong());
     }
 
+    // 将当前ByteBuf中的数据读取到新创建的ByteBuf中，读取的长度为length。
+    // 操作成功完成之后，返回的ByteBuf的readerIndex为0，writeIndex为length
+    // 如果读取的长度length大于当前操作的ByteBuf的可写字节数，
+    // 将抛出IndexOutOfBoundsException，操作失败
     @Override
     public ByteBuf readBytes(int length) {
         checkReadableBytes(length);
@@ -874,6 +878,9 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return buf;
     }
 
+    // 返回新创建的子区域：子区域与原ByteBuf共享缓冲区，
+    // 但是独立维护自己的readerIndex和writeIndex
+    // 新创建的子区域readIndex为0，writeIndex为length
     @Override
     public ByteBuf readSlice(int length) {
         checkReadableBytes(length);
@@ -890,6 +897,10 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return slice;
     }
 
+    // 将当前ByteBuf的数据读取到目标byte数组中，读取的字节数长度为length，
+    // 目标字节数组的起始索引为dstIndex
+    // 如果dstIndex小于0，或者length大于当前ByteBuf的可读字
+    // 节数，或者dstIndex+length大于dst.length，则抛出IndexOutOfBoundsException，操作失败
     @Override
     public ByteBuf readBytes(byte[] dst, int dstIndex, int length) {
         checkReadableBytes(length);
@@ -898,18 +909,31 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
+    // 将当前ByteBuf的数据读取到目标byte数组中，读取的字节数
+    // 长度为dst.length操作完成之后，
+    // 当前ByteBuf的readerIndex+=dst.length
+    // 如果目标字节数组的长度大于当前ByteBuf可读的字节数，
+    // 则抛出IndexOutOfBoundsException，操作失败
     @Override
     public ByteBuf readBytes(byte[] dst) {
         readBytes(dst, 0, dst.length);
         return this;
     }
 
+    // 将当前ByteBuf的数据读取到目标ByteBuf中，直到目标ByteBuf没有剩余的空间可写
+    // 操作完成之后，当前ByteBuf的readerIndex+=读取的字节数
+    // 如果目标ByteBuf可写的字节数大于当前ByteBuf可读取的字节数，则抛出
+    // IndexOutOfBoundsException，操作失败
     @Override
     public ByteBuf readBytes(ByteBuf dst) {
         readBytes(dst, dst.writableBytes());
         return this;
     }
 
+    // 将当前ByteBuf的数据读取到目标ByteBuf中，读取的字节数长度为length
+    // 操作完成之后，当前ByteBuf的readerIndex+=length
+    // 如果需要读取的字节数长度length大于当前ByteBuf可读的字
+    // 节数或者目标ByteBuf可写的字节数，则抛出IndexOutOfBoundsException，操作失败
     @Override
     public ByteBuf readBytes(ByteBuf dst, int length) {
         if (checkBounds) {
@@ -923,6 +947,12 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
+    // 将当前ByteBuf的数据读取到目标ByteBuf中，读取的字节数长度为length
+    // 目标ByteBuf的起始索引为dstIndex，非writerIndex
+    // 操作完成之后，当前ByteBuf的readerIndex+=length
+    // 如果需要读取的字节数长度length大于当前ByteBuf可读的字
+    // 节数，或者dstIndex小于0，或者dstIndex+length大于目标ByteBuf
+    // 的capacity，则抛出IndexOutOfBoundsException，操作失败
     @Override
     public ByteBuf readBytes(ByteBuf dst, int dstIndex, int length) {
         checkReadableBytes(length);
@@ -931,6 +961,10 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
+    // 将当前ByteBuf的数据读取到目标ByteBuffer中，直到位置指针到达ByteBuffer的limit
+    // 操作成功完成之后，当前ByteBuf的readerlndex+=dest.remaining()
+    // 如果目标ByteBuffer的可写字节数大于当前ByteBuf可读字节
+    // 数，则抛出IndexOutOfBoundsException，操作失败
     @Override
     public ByteBuf readBytes(ByteBuffer dst) {
         int length = dst.remaining();
@@ -940,6 +974,18 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
+    // 将当前ByteBuf的数据写入到目标GatheringByteChannel中，
+    // 写入的最大字节数长度为length
+    // 注意：由于GatheringByteChannel是非阻塞Channel，调用它
+    // 的write操作并不能保证一次能够将所有需要写入的字节数都
+    // 写入成功，即存在“写半包”问题。因此，它写入的字节数范围为[0,length]
+    // 如果操作成功，当前ByteBuf的readerIndex+=实际写入的字节数
+    // 如果需要写入的length大于当前ByteBuf的可读字节数，则抛出
+    // IndexOutOfBoundsException异常：如果操作过程中
+    // GatheringByteChannel发生了IO异常，则抛出1OException，
+    // 无论抛出何种异常，操作都将失败
+    // 与其他read方法不同的是，本方法的返回值不是当前的
+    // ByteBuf，而是写入GatheringByteChannel的实际字节数
     @Override
     public int readBytes(GatheringByteChannel out, int length)
             throws IOException {
@@ -958,6 +1004,11 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return readBytes;
     }
 
+    // 将当前ByteBuf的数据读取到目标输出流中，读取的字节数长度为length
+    // 如果操作成功，当前ByteBuf的readerIndex+=length
+    // 如果length大于当前ByteBuf可读取的字节数，则抛出
+    // IndexOutOfBoundsException，操作失败
+    // 如果读取过程中OutputStream自身发生了I/O异常，则抛出IOException
     @Override
     public ByteBuf readBytes(OutputStream out, int length) throws IOException {
         checkReadableBytes(length);
@@ -1082,6 +1133,8 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
+    // 将源ByteBufsrc中的所有可读字节写入到当前ByteBuf中
+    // 操作成功之后当前ByteBuf的writerIndex+=src.readableBytes
     @Override
     public ByteBuf writeBytes(ByteBuf src) {
         writeBytes(src, src.readableBytes());
@@ -1106,6 +1159,9 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
+    // 将源ByteBuffer中的可读字节写入到当前ByteBuf中，写入
+    // 的字节数长度为length
+    // 操作成功之后当前ByteBuf的writerIndex+=length
     @Override
     public ByteBuf writeBytes(ByteBuffer src) {
         int length = src.remaining();
@@ -1146,6 +1202,9 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return writtenBytes;
     }
 
+    // 将当前的缓冲区内容填充为NUL（0x00），起始位置为
+    // writerIndex，填充的长度为length
+    // 填充成功之后writerIndex+=length
     @Override
     public ByteBuf writeZero(int length) {
         if (length == 0) {

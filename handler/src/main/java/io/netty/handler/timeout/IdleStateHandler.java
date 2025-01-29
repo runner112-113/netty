@@ -244,6 +244,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         if (ctx.channel().isActive() && ctx.channel().isRegistered()) {
             // channelActive() event has been fired already, which means this.channelActive() will
             // not be invoked. We have to initialize here instead.
+            // 相关初始化 & 启动相关检测任务
             initialize(ctx);
         } else {
             // channelActive() event has not been fired yet.  this.channelActive() will be invoked
@@ -341,16 +342,20 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         state = ST_INITIALIZED;
         initOutputChanged(ctx);
 
+        // 初始化
         lastReadTime = lastWriteTime = ticksInNanos();
         if (readerIdleTimeNanos > 0) {
+            // 开启读监控
             readerIdleTimeout = schedule(ctx, new ReaderIdleTimeoutTask(ctx),
                     readerIdleTimeNanos, TimeUnit.NANOSECONDS);
         }
         if (writerIdleTimeNanos > 0) {
+            // 开启写监控
             writerIdleTimeout = schedule(ctx, new WriterIdleTimeoutTask(ctx),
                     writerIdleTimeNanos, TimeUnit.NANOSECONDS);
         }
         if (allIdleTimeNanos > 0) {
+            // 开启all监控
             allIdleTimeout = schedule(ctx, new AllIdleTimeoutTask(ctx),
                     allIdleTimeNanos, TimeUnit.NANOSECONDS);
         }
@@ -480,7 +485,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         return false;
     }
 
-    private abstract static class AbstractIdleTask implements Runnable {
+    private abstract static class  AbstractIdleTask implements Runnable {
 
         private final ChannelHandlerContext ctx;
 
@@ -510,14 +515,17 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         protected void run(ChannelHandlerContext ctx) {
             long nextDelay = readerIdleTimeNanos;
             if (!reading) {
+                // 计算是否idle
                 nextDelay -= ticksInNanos() - lastReadTime;
             }
 
             if (nextDelay <= 0) {
                 // Reader is idle - set a new timeout and notify the callback.
+                // 空闲了
                 readerIdleTimeout = schedule(ctx, this, readerIdleTimeNanos, TimeUnit.NANOSECONDS);
 
                 boolean first = firstReaderIdleEvent;
+                // firstReaderIdleEvent置为false
                 firstReaderIdleEvent = false;
 
                 try {
@@ -528,6 +536,8 @@ public class IdleStateHandler extends ChannelDuplexHandler {
                 }
             } else {
                 // Read occurred before the timeout - set a new timeout with shorter delay.
+                // 没有发生空闲：
+                // 重新起一个检测task,用nextdelay时间
                 readerIdleTimeout = schedule(ctx, this, nextDelay, TimeUnit.NANOSECONDS);
             }
         }

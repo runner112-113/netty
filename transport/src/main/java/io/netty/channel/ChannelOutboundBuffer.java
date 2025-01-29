@@ -92,10 +92,12 @@ public final class ChannelOutboundBuffer {
 
     private boolean inFail;
 
+    // 使用volatile基本类型 + satic Atomic*FieldUpdater --> 节省空间
     private static final AtomicLongFieldUpdater<ChannelOutboundBuffer> TOTAL_PENDING_SIZE_UPDATER =
             AtomicLongFieldUpdater.newUpdater(ChannelOutboundBuffer.class, "totalPendingSize");
 
     @SuppressWarnings("UnusedDeclaration")
+    // 待发送的字节数
     private volatile long totalPendingSize;
 
     private static final AtomicIntegerFieldUpdater<ChannelOutboundBuffer> UNWRITABLE_UPDATER =

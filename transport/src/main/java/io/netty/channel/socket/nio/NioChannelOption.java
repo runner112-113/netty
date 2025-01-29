@@ -61,6 +61,7 @@ public final class NioChannelOption<T> extends ChannelOption<T> {
         if (!channel.supportedOptions().contains(option.option)) {
             return false;
         }
+        // IP_TOS jdk的bug,所以不支持
         if (channel instanceof ServerSocketChannel && option.option == java.net.StandardSocketOptions.IP_TOS) {
             // Skip IP_TOS as a workaround for a JDK bug:
             // See https://mail.openjdk.java.net/pipermail/nio-dev/2018-August/005365.html
