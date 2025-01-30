@@ -65,6 +65,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         }
     }
 
+    // 检测对象是否泄露
     static final ResourceLeakDetector<ByteBuf> leakDetector =
             ResourceLeakDetectorFactory.instance().newResourceLeakDetector(ByteBuf.class);
 
@@ -1305,6 +1306,9 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return ByteBufUtil.decodeString(this, index, length, charset);
     }
 
+    // 从当前ByteBuf中定位出首次出现value的位置。
+    // 起始索引为fromIndex，终点是toIndex。如果没有查找到则返回-1，
+    // 否则返回第一条满足搜索条件的位置索引。
     @Override
     public int indexOf(int fromIndex, int toIndex, byte value) {
         if (fromIndex <= toIndex) {
@@ -1345,7 +1349,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
     }
 
     @Override
-    public int forEachByte(int index, int length, ByteProcessor processor) {
+    public int forEachByte(int index, int length, BytePorocessor processor) {
         checkIndex(index, length);
         try {
             return forEachByteAsc0(index, index + length, processor);

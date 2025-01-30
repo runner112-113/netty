@@ -19,6 +19,7 @@ import io.netty.util.ReferenceCounted;
 
 /**
  * A packet which is send or receive.
+ * <p></p>
  *
  *
  * ByteBufHolder是ByteBuf的容器，在Netty中，它非常有用。

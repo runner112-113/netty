@@ -1297,6 +1297,8 @@ public final class ByteBufUtil {
      * Encode the given {@link CharBuffer} using the given {@link Charset} into a new {@link ByteBuf} which
      * is allocated via the {@link ByteBufAllocator}.
      */
+    // 对需要编码的字符串src按照指定的字符集charset进行编码，
+    // 利用指定的ByteBufAllocator生成一个新的ByteBuf
     public static ByteBuf encodeString(ByteBufAllocator alloc, CharBuffer src, Charset charset) {
         return encodeString0(alloc, false, src, charset, 0);
     }
@@ -1349,6 +1351,7 @@ public final class ByteBufUtil {
     }
 
     @SuppressWarnings("deprecation")
+    // 使用指定的ByteBuffer 和charset进行对ByteBuffer进行解码，获取解码后的字符串
     static String decodeString(ByteBuf src, int readerIndex, int len, Charset charset) {
         if (len == 0) {
             return StringUtil.EMPTY_STRING;

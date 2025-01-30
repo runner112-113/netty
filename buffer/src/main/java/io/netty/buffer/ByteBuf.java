@@ -2178,6 +2178,8 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf>, 
      * This method does not modify {@code readerIndex} or {@code writerIndex} of
      * this buffer.
      */
+    // 制一个新的ByteBuf对象，它的内容和索引都是独立的，复制操作本身
+    // 并不修改原ByteBuf的读写索引
     public abstract ByteBuf copy();
 
     /**
@@ -2186,6 +2188,8 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf>, 
      * This method does not modify {@code readerIndex} or {@code writerIndex} of
      * this buffer.
      */
+    // 从指定的索引开始复制，复制的字节长度为length，
+    // 复制后的ByteBuf内容和读写索引都与之前的独立
     public abstract ByteBuf copy(int index, int length);
 
     /**
@@ -2199,6 +2203,9 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf>, 
      * Also be aware that this method will NOT call {@link #retain()} and so the
      * reference count will NOT be increased.
      */
+    // 返回当前ByteBuf的可读子缓冲区，起始位置从readerIndex到writerlndex，
+    // 返回后的ByteBuf与原ByteBuf共享内容，但是读写索引独立维护。该操作并不修改原
+    // ByteBuf的readerIndex和writerIndex
     public abstract ByteBuf slice();
 
     /**
@@ -2225,6 +2232,9 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf>, 
      * Also be aware that this method will NOT call {@link #retain()} and so the
      * reference count will NOT be increased.
      */
+    // 返回当前ByteBuf的可读子缓冲区，起始位置从index到index+length，
+    // 返回后的ByteBuf与原ByteBuf共享内容，但是读写索引独立维护。该
+    // 操作并不修改原ByteBuf的readerIndex和writerIndex
     public abstract ByteBuf slice(int index, int length);
 
     /**
@@ -2253,6 +2263,9 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf>, 
      * However this buffer will share the capacity of the underlying buffer, and therefore allows access to all of the
      * underlying content if necessary.
      */
+    // 返回当前ByteBuf的复制对象，复制后返回的ByteBuf与操作的ByteBuf
+    // 共享缓冲区内容，但是维护自己独立的读写索引。当修改复制后的ByteBuf内容后，之前
+    // 原ByteBuf的内容也随之改变，双方持有的是同一个内容指针引用。
     public abstract ByteBuf duplicate();
 
     /**
@@ -2372,6 +2385,8 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf>, 
      * @throws UnsupportedOperationException
      *         if there no accessible backing byte array
      */
+    // 在调用array方法之前，可以先通过hasArray进行判断。
+    // 如果返回false说明当前的ByteBuf不支持array方法。
     public abstract byte[] array();
 
     /**

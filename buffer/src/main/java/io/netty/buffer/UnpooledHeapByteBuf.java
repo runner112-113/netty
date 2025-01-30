@@ -37,7 +37,9 @@ import static io.netty.util.internal.ObjectUtil.checkNotNull;
  */
 public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
 
+    // 内存分配器
     private final ByteBufAllocator alloc;
+    // 字节数组：提升性能&更加便捷测位操作
     byte[] array;
     private ByteBuffer tmpNioBuf;
 
@@ -128,11 +130,13 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         if (newCapacity > oldCapacity) {
             bytesToCopy = oldCapacity;
         } else {
+            // 截取
             trimIndicesToCapacity(newCapacity);
             bytesToCopy = newCapacity;
         }
         byte[] newArray = allocateArray(newCapacity);
         System.arraycopy(oldArray, 0, newArray, 0, bytesToCopy);
+        // 替换旧的字节数组
         setArray(newArray);
         freeArray(oldArray);
         return this;
