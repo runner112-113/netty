@@ -31,7 +31,7 @@ import java.util.List;
 
 /**
  * {@link AbstractNioChannel} base class for {@link Channel}s that operate on messages.
- *
+ *<p></p>
  * 发送的则是POJO对象
  */
 public abstract class AbstractNioMessageChannel extends AbstractNioChannel {

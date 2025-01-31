@@ -50,10 +50,13 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     private static final InternalLogger logger =
             InternalLoggerFactory.getInstance(AbstractNioChannel.class);
 
+    // SocketChannel和ServerSocketChannel的公共父类
+    // 可以说是被代理的channel
     private final SelectableChannel ch;
     // NioServerSocketChannel对应OP_ACCEPT
     // NioSocketChannel对应OP_READ
     protected final int readInterestOp;
+    // Channel注册到EventLoop后返回的选择键
     volatile SelectionKey selectionKey;
     boolean readPending;
     private final Runnable clearReadPendingRunnable = new Runnable() {
@@ -66,12 +69,12 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     /**
      * The future of the current connection attempt.  If not null, subsequent
      * connection attempts will fail.
-     * 连接操作结果
      */
+    // 连接操作结果
     private ChannelPromise connectPromise;
     // 连接超时定时器
     private Future<?> connectTimeoutFuture;
-    // 请求的通行地址
+    // 请求的通信地址
     private SocketAddress requestedRemoteAddress;
 
     /**
@@ -400,7 +403,8 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             try {
                 // 0表示只注册，不监听任何网络操作;这样做的原因如下:
                 // 1.注册方法是多态的，它既可以被NioServerSocketChannel用来监听客户端的连接接入，也可以注册SocketChannel用来监听网络读或者写操作
-                // 2.通过SelectionKey的interestOps(int ops)方法可以方便地修改监听操作位。所以，此处注册需要获取SelectionKey并给AbstractNioChannel的成员变量selectionKey赋值
+                // 2.通过SelectionKey的interestOps(int ops)方法可以方便地修改监听操作位。
+                // 所以，此处注册需要获取SelectionKey并给AbstractNioChannel的成员变量selectionKey赋值
                 // 此处也带上了attachment，处将AbstractNioChannel的实现子类自身当作附件注册
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;
@@ -421,6 +425,9 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                 } else {
                     // We forced a select operation on the selector before but the SelectionKey is still cached
                     // for whatever reason. JDK bug ?
+                    // 如果仍然发生CancelledKeyException异常，说明我们无法删除已经被取消的selectionKey，
+                    // 按照JDK的API说明，这种意外不应该发生。如果发生这种问题，则说明可能NIO的相关类库存在不可恢复的BUG，
+                    // 直接抛出CancelledKeyException异常到上层进行统一处理
                     throw e;
                 }
             }

@@ -79,6 +79,8 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
     /**
      * Returns the globally unique identifier of this {@link Channel}.
      *
+     * <p></p>
+     *
      * Channelld是Channel的唯一标识，它的可能生成策略如下;
      * （1）机器的MAC地址（EUI-48或者EUI-64）等可以代表全局唯一的信息;
      * （2）当前的进程ID;
@@ -101,6 +103,7 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      * @return the parent channel.
      *         {@code null} if this channel does not have a parent channel.
      *
+     * <p></p>
      * 对于服务端Channel而言，它的父Channel为空：
      * 对于客户端Channel，它的父Channel就是创建它的ServerSocketChannel。
      */
@@ -108,33 +111,35 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
 
     /**
      * Returns the configuration of this channel.
-     *
+     *<p></p>
      * 获取当前Channel的配置信息，例如CONNECT_TIMEOUT_MILLIS
      */
     ChannelConfig config();
 
     /**
      * Returns {@code true} if the {@link Channel} is open and may get active later
+     * <p></p>
      * 判断当前Channel是否已经打开
      */
     boolean isOpen();
 
     /**
      * Returns {@code true} if the {@link Channel} is registered with an {@link EventLoop}.
+     * <p></p>
      * 判断当前Channel是否已经注册到EventLoop上
      */
     boolean isRegistered();
 
     /**
      * Return {@code true} if the {@link Channel} is active and so connected.
-     *
+     *<p></p>
      * 判断当前Channel是否已经处于激活状态
      */
     boolean isActive();
 
     /**
      * Return the {@link ChannelMetadata} of the {@link Channel} which describe the nature of the {@link Channel}.
-     *
+     *<p></p>
      * 获取当前Channel的元数据描述信息，包括TCP参数配置等
      */
     ChannelMetadata metadata();
@@ -148,7 +153,8 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      * @return the local address of this channel.
      *         {@code null} if this channel is not bound.
      *
-     *  获取当前Channel的本地绑定地址
+     * <p></p>
+     * 获取当前Channel的本地绑定地址
      */
     SocketAddress localAddress();
 
@@ -166,7 +172,8 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      *         the origination of the received message as this method will
      *         return {@code null}.
      *
-     *  获取当前Channel通信的远程Socket地址
+     * <p></p>
+     * 获取当前Channel通信的远程Socket地址
      */
     SocketAddress remoteAddress();
 
@@ -252,24 +259,28 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
          * Return the {@link SocketAddress} to which is bound local or
          * {@code null} if none.
          */
+        // 返回本地绑定的Socket地址
         SocketAddress localAddress();
 
         /**
          * Return the {@link SocketAddress} to which is bound remote or
          * {@code null} if none is bound yet.
          */
+        // 返回通信对端的Socket地址 peer address
         SocketAddress remoteAddress();
 
         /**
          * Register the {@link Channel} of the {@link ChannelPromise} and notify
          * the {@link ChannelFuture} once the registration was complete.
          */
+        // 注册Channel到多路复用器上，一旦注册操作完成，通知ChannelFuture
         void register(EventLoop eventLoop, ChannelPromise promise);
 
         /**
          * Bind the {@link SocketAddress} to the {@link Channel} of the {@link ChannelPromise} and notify
          * it once its done.
          */
+        // 绑定指定的本地地址localAddress到当前的Channel上，一旦完成，通知ChannelFuture
         void bind(SocketAddress localAddress, ChannelPromise promise);
 
         /**
@@ -279,6 +290,7 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
          *
          * The {@link ChannelPromise} will get notified once the connect operation was complete.
          */
+        // 绑定本地的localAddress之后，连接服务端，一旦操作完成，通知ChannelFuture
         void connect(SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise);
 
         /**
@@ -297,6 +309,7 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
          * Closes the {@link Channel} immediately without firing any events.  Probably only useful
          * when registration attempt failed.
          */
+        // 强制立即关闭连接
         void closeForcibly();
 
         /**
@@ -309,17 +322,20 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
          * Schedules a read operation that fills the inbound buffer of the first {@link ChannelInboundHandler} in the
          * {@link ChannelPipeline}.  If there's already a pending read operation, this method does nothing.
          *
-         * 设置网络操作位为读用于读取消息
          */
+        // 设置网络操作位为读用于读取消息
         void beginRead();
 
         /**
          * Schedules a write operation.
          */
+        // 发送消息，一旦完成，通知ChannelFuture
         void write(Object msg, ChannelPromise promise);
 
         /**
          * Flush out all write operations scheduled via {@link #write(Object, ChannelPromise)}.
+         *
+         * <p></p>
          *
          * 将缓冲数组中的消息写入Channel中
          */
@@ -330,6 +346,8 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
          * It will never be notified of a success or error and so is only a placeholder for operations
          * that take a {@link ChannelPromise} as argument but for which you not want to get notified.
          *
+         * <p></p>
+         *
          * 返回一个特殊的可重用和传递的ChannelPromise，不用于操作成功或者失败的通知器，仅仅作为一个容器被使用
          */
         ChannelPromise voidPromise();
@@ -337,6 +355,7 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
         /**
          * Returns the {@link ChannelOutboundBuffer} of the {@link Channel} where the pending write requests are stored.
          *
+         * <p></p>
          * 返回消息发送的缓冲区
          */
         ChannelOutboundBuffer outboundBuffer();

@@ -320,6 +320,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
         boolean success = false;
         try {
             boolean connected = SocketUtils.connect(javaChannel(), remoteAddress);
+            // 暂时没有连接上，服务端没有返回ACK应答，连接结果不确定，返回false；
             if (!connected) {
                 // 注册OP_CONNECT事件
                 selectionKey().interestOps(SelectionKey.OP_CONNECT);
@@ -327,6 +328,8 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
             success = true;
             return connected;
         } finally {
+            // 连接失败 直接抛出IOException异常
+            // 说明客户端的TCP握手请求直接被REST或者被拒绝，此时需要关闭客户端连接
             if (!success) {
                 doClose();
             }
@@ -362,6 +365,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
     protected int doReadBytes(ByteBuf byteBuf) throws Exception {
         final RecvByteBufAllocator.Handle allocHandle = unsafe().recvBufAllocHandle();
         allocHandle.attemptedBytesRead(byteBuf.writableBytes());
+        // 从SocketChannel中读取length个字节到ByteBuf中
         return byteBuf.writeBytes(javaChannel(), allocHandle.attemptedBytesRead());
     }
 
@@ -393,7 +397,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
     @Override
     protected void doWrite(ChannelOutboundBuffer in) throws Exception {
         SocketChannel ch = javaChannel();
-        // 获取写入自旋的次数
+        // 获取写入循环的的上限
         int writeSpinCount = config().getWriteSpinCount();
         do {
             if (in.isEmpty()) {
@@ -406,6 +410,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
             // Ensure the pending writes are made of ByteBufs only.
             int maxBytesPerGatheringWrite = ((NioSocketChannelConfig) config).getMaxBytesPerGatheringWrite();
             ByteBuffer[] nioBuffers = in.nioBuffers(1024, maxBytesPerGatheringWrite);
+            // 获取需要发送的ByteBuffer数组个数
             int nioBufferCnt = in.nioBufferCount();
 
             // Always use nioBuffers() to workaround data-corruption.
@@ -438,6 +443,8 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
                     long attemptedBytes = in.nioBufferSize();
                     // 真正的写到底层的Channel中，即flush操作
                     final long localWrittenBytes = ch.write(nioBuffers, 0, nioBufferCnt);
+                    // 说明TCP发送缓冲区已满，很有可能无法再写进去，因此从循环中跳出，同时将写半包标识设置为true，
+                    // 用于向多路复用器注册写操作位，告诉多路复用器有没发完的半包消息，需要轮询出就绪的SocketChannel继续发送
                     if (localWrittenBytes <= 0) {
                         incompleteWrite(true);
                         return;

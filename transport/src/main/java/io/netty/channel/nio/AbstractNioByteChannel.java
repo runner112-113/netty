@@ -39,7 +39,7 @@ import static io.netty.channel.internal.ChannelUtils.WRITE_STATUS_SNDBUF_FULL;
 
 /**
  * {@link AbstractNioChannel} base class for {@link Channel}s that operate on bytes.
- *
+ *<p></p>
  * 发送的是ByteBuf或者FileRegion，它们可以直接被发送
  */
 public abstract class AbstractNioByteChannel extends AbstractNioChannel {
@@ -48,6 +48,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             " (expected: " + StringUtil.simpleClassName(ByteBuf.class) + ", " +
             StringUtil.simpleClassName(FileRegion.class) + ')';
 
+    // 继续负责写半包消息
     private final Runnable flushTask = new Runnable() {
         @Override
         public void run() {
@@ -236,6 +237,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             ByteBuf buf = (ByteBuf) msg;
             // 消息不可读 --> 废弃
             if (!buf.isReadable()) {
+                // 移除
                 in.remove();
                 return 0;
             }
@@ -269,6 +271,10 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             // Should not reach here.
             throw new Error();
         }
+        // 如果本次发送的字节数为O，说明发送TCP缓冲区已满，发生了
+        // ZERO_WINDOW。此时再次发送仍然可能出现写O字节，空循环会占用CPU的资源，
+        // 导致I/O线程无法处理其他I/O操作，所以将写半包标识setOpWrite设置为true，退出
+        // 循环，释放I/O线程。
         return WRITE_STATUS_SNDBUF_FULL;
     }
 
@@ -324,7 +330,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         // Did not write completely.
         if (setOpWrite) {
             // 还未写完 通知Reactor线程还有半包消息待发送
-            // 仍然对写时间感兴趣
+            // 仍然对写事件感兴趣(当TCP的写buf有空间了就会发送write事件)
             setOpWrite();
         } else {
             // It is possible that we have set the write OP, woken up by NIO because the socket is writable, and then
@@ -334,6 +340,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             clearOpWrite();
 
             // Schedule flush again later so other tasks can be picked up in the meantime
+            // 提交flush任务(负责半包消息的发送)
             eventLoop().execute(flushTask);
         }
     }

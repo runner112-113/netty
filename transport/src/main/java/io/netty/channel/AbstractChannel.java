@@ -757,6 +757,8 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                         outboundBuffer.close(closeCause);
                     }
                 }
+                // 在链路关闭之前需要首先判断是否处于刷新状态，如果处于刷新状态说明还有消息尚未发送出去，
+                // 需要等到所有消息发送完成再关闭链路，因此，将关闭操作封装成Runnable稍后再执行
                 if (inFlush0) {
                     invokeLater(new Runnable() {
                         @Override

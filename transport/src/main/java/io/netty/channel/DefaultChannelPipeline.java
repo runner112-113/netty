@@ -42,7 +42,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
  * The default {@link ChannelPipeline} implementation.  It is usually created
  * by a {@link Channel} implementation when the {@link Channel} is created.
  *
- *
+ *<p></p>
  * ChannelPipeline支持运行态动态的添加或者删除ChannelHandler，在某些场景下这个特性非常实用。
  * 例如当业务高峰期需要对系统做拥塞保护时，就可以根据当前的系统除拥塞时间进行判断，如果处于业务高峰期，则动态地将系统拥塞保护ChannelHandler添加到当前的ChannelPipeline中，当高峰期过去之后，就可以动态删保护ChannelHandler了。
  * ChannelPipeline是线程安全的（加了synchronized操作），这意味着N个业务线程可以并发地操作ChannelPipeline而不存在多线程并发问题。
@@ -75,6 +75,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     private final boolean touch = ResourceLeakDetector.isEnabled();
 
     private Map<EventExecutorGroup, EventExecutor> childExecutors;
+    // 用于预测下一个报文的大小
     private volatile MessageSizeEstimator.Handle estimatorHandle;
     private boolean firstRegistration = true;
 
