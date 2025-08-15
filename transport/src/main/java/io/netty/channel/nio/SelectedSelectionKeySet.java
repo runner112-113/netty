@@ -22,6 +22,12 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
+/**
+ * 一个用 数组 存储 SelectionKey 的容器，避免 HashSet 的开销。
+ * 1.直接用 SelectionKey[] 数组
+ * 2.不用迭代器，for 循环直接访问
+ * 3.清空时只需要将计数器归零，不需要移除对象
+ */
 final class SelectedSelectionKeySet extends AbstractSet<SelectionKey> {
 
     SelectionKey[] keys;

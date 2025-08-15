@@ -81,12 +81,13 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      *
      * <p></p>
      *
-     * Channelld是Channel的唯一标识，它的可能生成策略如下;
+     * ChannelId是Channel的唯一标识，它的可能生成策略如下;
      * （1）机器的MAC地址（EUI-48或者EUI-64）等可以代表全局唯一的信息;
      * （2）当前的进程ID;
      * （3）当前系统时间的毫秒System.currentTimeMillisO;
      * （4）当前系统时间纳秒数System.nanoTimeO;
-     * （5）32位的随机整型数；（6）32位自增的序列数。
+     * （5）32位的随机整型数；
+     * （6）32位自增的序列数。
      */
     ChannelId id();
 
@@ -104,8 +105,8 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
      *         {@code null} if this channel does not have a parent channel.
      *
      * <p></p>
-     * 对于服务端Channel而言，它的父Channel为空：
-     * 对于客户端Channel，它的父Channel就是创建它的ServerSocketChannel。
+     * 对于客户端端Channel而言，它的父Channel为空：
+     * 对于服务端Channel，它的父Channel就是创建它的ServerSocketChannel。
      */
     Channel parent();
 

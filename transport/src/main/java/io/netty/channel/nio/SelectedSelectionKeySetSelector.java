@@ -21,6 +21,10 @@ import java.nio.channels.Selector;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Set;
 
+/**
+ * 继承自 Selector，内部包装一个原生 Selector，重写了 selectedKeys() 方法，
+ * 让它返回 Netty 自己的 SelectedSelectionKeySet 而不是 HashSet
+ */
 final class SelectedSelectionKeySetSelector extends Selector {
     private final SelectedSelectionKeySet selectionKeys;
     private final Selector delegate;
