@@ -105,12 +105,14 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
                 // 判断缓冲区的类型，对于直接内存分配ioBuffer（堆外内存），对于堆内存通过heapBuffer方法分配。
                 buf = allocateBuffer(ctx, cast, preferDirect);
                 try {
+                    // 编码  最终返回ByteBuf
                     encode(ctx, cast, buf);
                 } finally {
                     ReferenceCountUtil.release(cast);
                 }
 
                 // 如果缓冲区包含可发送的字节，则调用ChannelHandlerContext的write方法发送ByteBuf;
+                // 编码后有需要发送的， 则调用write发送
                 if (buf.isReadable()) {
                     ctx.write(buf, promise);
                 } else {

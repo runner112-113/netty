@@ -32,7 +32,7 @@ import io.netty.handler.ssl.SslContext;
 /**
  * Echoes back any received data from a client.
  */
-public final class EchoServer {
+public final class  EchoServer {
 
     static final int PORT = Integer.parseInt(System.getProperty("port", "8007"));
 
